@@ -1,0 +1,11 @@
+adequacy,scan_status,diagnosis
+sat,pass,normal
+sat,fail,normal
+unsat,pass,normal
+sat,pass,hsil
+sat,pass,infection
+sat,pass,lsil
+sat,pass,ascus
+unsat,fail,normal
+sat,pass,normal
+sat,pass,hsil
