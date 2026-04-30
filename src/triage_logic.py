@@ -1,4 +1,6 @@
+import pandas as pd
 import csv
+
 
 def assign_priority(adequacy, scan_status, diagnosis):
     
@@ -18,23 +20,30 @@ def assign_priority(adequacy, scan_status, diagnosis):
 
     return diagnosis_map.get(diagnosis.lower(), 99)
 
-ranked_cases = []
 
-with open("data/raw/cytology_cases.csv") as file:
-    reader = csv.DictReader(file)
+df = pd.read_csv("data/raw/cytology_cases.csv")
+df["priority"] = df.apply(lambda row: assign_priority(row["adequacy"], row["scan_status"], row["diagnosis"]), axis=1)
+df = df.sort_values("priority")
+df = df.reset_index(drop=True)
+print(df)
 
-    for row in reader:
-        adequacy = row["adequacy"]
-        scan_status = row["scan_status"]
-        diagnosis = row["diagnosis"]
+# ranked_cases = []
 
-        priority = assign_priority(adequacy, scan_status, diagnosis)
+# with open("data/raw/cytology_cases.csv") as file:
+    # reader = csv.DictReader(file)
 
-        row["priority"] = priority
-        ranked_cases.append(row)
+    # for row in reader:
+        # adequacy = row["adequacy"]
+        # scan_status = row["scan_status"]
+        # diagnosis = row["diagnosis"]
 
-ranked_cases = sorted(ranked_cases, key=lambda x: x["priority"])
+        # priority = assign_priority(adequacy, scan_status, diagnosis)
 
-for case in ranked_cases:
-    print(case)
+        # row["priority"] = priority
+        # ranked_cases.append(row)
+
+# ranked_cases = sorted(ranked_cases, key=lambda x: x["priority"])
+
+# for case in ranked_cases:
+    # print(case)
         
