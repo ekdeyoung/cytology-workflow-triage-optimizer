@@ -20,12 +20,15 @@ def assign_priority(adequacy, scan_status, diagnosis):
 
     return diagnosis_map.get(diagnosis.lower(), 99)
 
+def create_triage_queue(file_path):
+    df = pd.read_csv(file_path)
+    df["priority"] = df.apply(lambda row: assign_priority(row["adequacy"], row["scan_status"], row["diagnosis"]), axis=1)
+    df = df.sort_values("priority")
+    df = df.reset_index(drop=True)
+    return df
 
-df = pd.read_csv("data/raw/cytology_cases.csv")
-df["priority"] = df.apply(lambda row: assign_priority(row["adequacy"], row["scan_status"], row["diagnosis"]), axis=1)
-df = df.sort_values("priority")
-df = df.reset_index(drop=True)
-print(df)
+triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
+print(triage_queue)
 
 # ranked_cases = []
 
