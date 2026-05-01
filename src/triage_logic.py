@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 import csv
 
@@ -30,7 +32,9 @@ def create_triage_queue(file_path):
 triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
 print(triage_queue)
 
-triage_queue.to_csv("results/triage_report.csv", index=False)
+today = datetime.today().strftime("%Y-%m-%d")
+
+triage_queue.to_csv(f"results/triage_report_{today}.csv", index=False)
 
 # ranked_cases = []
 
