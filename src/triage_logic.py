@@ -30,6 +30,8 @@ def create_triage_queue(file_path):
 triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
 print(triage_queue)
 
+triage_queue.to_csv("results/triage_report.csv", index=False)
+
 # ranked_cases = []
 
 # with open("data/raw/cytology_cases.csv") as file:
