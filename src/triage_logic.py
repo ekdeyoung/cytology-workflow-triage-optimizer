@@ -39,23 +39,25 @@ def create_triage_queue(file_path):
     return df
 
 triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
+print("\n=== CYTOLOGY TRIAGE REPORT ===\n")
+print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
 
 urgent_cases = triage_queue[triage_queue["needs_attention"] == "immediate_attention"]
 
-print("\nURGENT CASES:")
+print("\n=== URGENT CASES ===")
 print(urgent_cases)
 
 pathologist_cases = triage_queue[triage_queue["needs_attention"] == "pathologist_review"]
 
-print("\nPATHOLOGIST REVIEW CASES:")
+print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)
 
 today = datetime.today().strftime("%Y-%m-%d")
 
 triage_queue.to_csv(f"results/triage_report_{today}.csv", index=False)
 
-print("\nSUMMARY:")
+print("\n=== SUMMARY ===")
 print("Urgent cases:", len(urgent_cases))
 print("Pathologist review cases:", len(pathologist_cases))
 
