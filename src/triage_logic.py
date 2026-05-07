@@ -1,6 +1,11 @@
-from triage_utils import create_triage_queue, create_summary_metrics
-
+import pandas as pd
 from datetime import datetime
+from triage_utils import create_triage_queue, create_summary_metrics, validate_case_data
+
+cases = pd.read_csv("data/raw/cytology_cases.csv")
+validate_case_data(cases)
+
+
 
 triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
 print("\n=== CYTOLOGY TRIAGE REPORT ===\n")

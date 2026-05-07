@@ -54,3 +54,12 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "scan_failures": len(scan_failures),
         "unsatisfactory_cases": len(unsat_cases),
     }
+
+def validate_case_data(df):
+    required_columns = ["case_id", "adequacy", "scan_status", "diagnosis"]
+
+    for column in required_columns:
+        if column not in df.columns:
+            raise ValueError(f"Missing required column: {column}")
+    
+    return True
