@@ -24,6 +24,10 @@ today = datetime.today().strftime("%Y-%m-%d")
 
 triage_queue.to_csv(f"results/triage_report_{today}.csv", index=False)
 
+urgent_cases.to_csv("results/urgent_cases.csv", index=False)
+
+pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
+
 print("\n=== SUMMARY ===")
 print("Urgent cases:", len(urgent_cases))
 print("Pathologist review cases:", len(pathologist_cases))
