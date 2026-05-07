@@ -2,9 +2,6 @@ from triage_utils import create_triage_queue
 
 from datetime import datetime
 
-import pandas as pd
-import csv
-
 triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
 print("\n=== CYTOLOGY TRIAGE REPORT ===\n")
 print("\n=== FULL TRIAGE QUEUE ===")
@@ -28,36 +25,23 @@ urgent_cases.to_csv("results/urgent_cases.csv", index=False)
 
 pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
 
-print("\n=== SUMMARY ===")
-print("Urgent cases:", len(urgent_cases))
-print("Pathologist review cases:", len(pathologist_cases))
-
 total_cases = len(triage_queue)
 
 urgent_pct = len(urgent_cases) / total_cases * 100
 review_pct = len(pathologist_cases) / total_cases * 100
 
+with open("results/summary_report.txt", "w") as file:
+    file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
+    file.write(f"Urgent cases: {len(urgent_cases)}\n")
+    file.write(f"Pathologist review cases: {len(pathologist_cases)}\n")
+    file.write(f"Total cases: {total_cases}\n")
+    file.write(f"Urgent %: {urgent_pct:.1f}%\n")
+    file.write(f"Pathologist review %: {review_pct:.1f}%\n")
+
+print("\n=== SUMMARY ===")
+print("Urgent cases:", len(urgent_cases))
+print("Pathologist review cases:", len(pathologist_cases))
+
 print(f"Total cases: {total_cases}")
 print(f"Urgent %: {urgent_pct:.1f}%")
 print(f"Pathologist review %: {review_pct:.1f}%")
-
-# ranked_cases = []
-
-# with open("data/raw/cytology_cases.csv") as file:
-    # reader = csv.DictReader(file)
-
-    # for row in reader:
-        # adequacy = row["adequacy"]
-        # scan_status = row["scan_status"]
-        # diagnosis = row["diagnosis"]
-
-        # priority = assign_priority(adequacy, scan_status, diagnosis)
-
-        # row["priority"] = priority
-        # ranked_cases.append(row)
-
-# ranked_cases = sorted(ranked_cases, key=lambda x: x["priority"])
-
-# for case in ranked_cases:
-    # print(case)
-        
