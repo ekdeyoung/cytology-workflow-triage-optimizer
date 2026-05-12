@@ -1,6 +1,14 @@
 import pandas as pd
+
 from datetime import datetime
-from triage_utils import create_triage_queue, create_summary_metrics, validate_case_data
+
+from triage_utils import (
+    create_triage_queue, 
+    create_summary_metrics, 
+    validate_case_data,
+    get_urgent_cases,
+    get_pathologist_review_cases
+)
 
 cases = pd.read_csv("data/raw/cytology_cases.csv")
 validate_case_data(cases)
@@ -12,12 +20,12 @@ print("\n=== CYTOLOGY TRIAGE REPORT ===\n")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
 
-urgent_cases = triage_queue[triage_queue["needs_attention"] == "immediate_attention"]
+urgent_cases = get_urgent_cases(triage_queue)
 
 print("\n=== URGENT CASES ===")
 print(urgent_cases)
 
-pathologist_cases = triage_queue[triage_queue["needs_attention"] == "pathologist_review"]
+pathologist_cases = get_pathologist_review_cases(triage_queue)
 
 print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)

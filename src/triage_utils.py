@@ -89,3 +89,9 @@ def validate_case_data(df):
             raise ValueError(f"Unexpected diagnosis value: {value}")
         
     return True
+
+def get_urgent_cases(df):
+    return df[df["needs_attention"] == "immediate_attention"]
+
+def get_pathologist_review_cases(df):
+    return df[df["needs_attention"] == "pathologist_review"]
