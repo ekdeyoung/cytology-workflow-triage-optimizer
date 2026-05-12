@@ -49,8 +49,16 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
     file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
-    file.write("\nPRIORITY REASON BREAKDOWN\n")
+    file.write("\nPRIORITY REASON BREAKDOWN\n") 
+
     reason_counts = triage_queue["priority_reason"].value_counts()
+    
+    most_common_reason = reason_counts.idxmax()
+    most_common_reason_count = reason_counts.max()
+
+    file.write(
+        f"Most common priority reason: {most_common_reason} ({most_common_reason_count} cases)\n\n"
+    )
 
     for reason, count in reason_counts.items():
         file.write(f"{reason}: {count}\n")
