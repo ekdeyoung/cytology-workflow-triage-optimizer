@@ -18,6 +18,24 @@ def assign_priority(adequacy, scan_status, diagnosis):
 
     return diagnosis_map.get(diagnosis.lower(), 99)
 
+def assign_priority_reason(adequacy, scan_status, diagnosis):
+
+    if adequacy.lower() in ["unsat", "unsatisfactory"]:
+        return "Low cellularity"
+    
+    elif scan_status.lower() in ["fail", "failed"]:
+        return "Scan failure"
+    
+    diagnosis_map = {
+        "hsil": "HSIL detected",
+        "lsil": "LSIL detected",
+        "ascus": "ASCUS detected",
+        "infection": "Infection detected",
+        "normal": "Routine normal case"
+    }
+
+    return diagnosis_map.get(diagnosis.lower(), "Unknown finding")
+
 def assign_attention_flag(priority): 
     if priority in [1, 2]:
         return "immediate_attention" 
@@ -37,6 +55,15 @@ def create_triage_queue(df):
         axis=1
     
     )
+    df["priority_reason"] = df.apply(
+        lambda row: assign_priority_reason(
+            row["adequacy"],
+            row["scan_status"],
+            row["diagnosis"]
+        ),
+        axis=1
+    )
+
     df["needs_attention"] = df["priority"].apply(assign_attention_flag)
 
     df = df.sort_values("priority")
