@@ -7,7 +7,7 @@ validate_case_data(cases)
 
 
 
-triage_queue = create_triage_queue("data/raw/cytology_cases.csv")
+triage_queue = create_triage_queue(cases)
 print("\n=== CYTOLOGY TRIAGE REPORT ===\n")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
