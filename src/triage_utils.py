@@ -41,7 +41,7 @@ def create_triage_queue(df):
 
     df = df.sort_values("priority")
     df = df.reset_index(drop=True)
-    
+
     return df
 
 def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
@@ -72,4 +72,20 @@ def validate_case_data(df):
         if column not in df.columns:
             raise ValueError(f"Missing required column: {column}")
     
+    allowed_adequacy = ["sat", "unsat", "unsatisfactory"]
+    allowed_scan_status = ["pass", "fail", "failed"]
+    allowed_diagnosis = ["normal", "infection", "ascus", "lsil", "hsil"]
+
+    for value in df["adequacy"]:
+            if value.lower() not in allowed_adequacy:
+                raise ValueError(f"Unexpected adequacy value: {value}")
+
+    for value in df["scan_status"]:
+        if value.lower() not in allowed_scan_status:
+            raise ValueError(f"Unexpected scan_status value: {value}")
+        
+    for value in df["diagnosis"]:
+        if value.lower() not in allowed_diagnosis:
+            raise ValueError(f"Unexpected diagnosis value: {value}")
+        
     return True
