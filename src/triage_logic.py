@@ -41,6 +41,10 @@ summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
 high_urgent_volume = summary["urgent_pct"] >= 30
 
+high_scan_failure_rate = (
+    summary["scan_failures"] / summary["total_cases"]
+) >=0.20
+
 with open("results/summary_report.txt", "w") as file:
     file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
     file.write(f"Urgent cases: {summary['urgent_cases']}\n")
@@ -54,6 +58,8 @@ with open("results/summary_report.txt", "w") as file:
     if high_urgent_volume:
         file.write("\nWORKFLOW ALERT\n")
         file.write("High urgent case volume detected\n")
+    if high_scan_failure_rate:
+        file.write("High scan failure rate detected\n")
 
     file.write("\nPRIORITY REASON BREAKDOWN\n") 
 
