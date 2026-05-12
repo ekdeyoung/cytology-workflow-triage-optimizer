@@ -39,6 +39,8 @@ pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
 
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
+high_urgent_volume = summary["urgent_pct"] >= 30
+
 with open("results/summary_report.txt", "w") as file:
     file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
     file.write(f"Urgent cases: {summary['urgent_cases']}\n")
@@ -49,10 +51,14 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
     file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
+    if high_urgent_volume:
+        file.write("\nWORKFLOW ALERT\n")
+        file.write("High urgent case volume detected\n")
+
     file.write("\nPRIORITY REASON BREAKDOWN\n") 
 
     reason_counts = triage_queue["priority_reason"].value_counts()
-    
+
     most_common_reason = reason_counts.idxmax()
     most_common_reason_count = reason_counts.max()
 
