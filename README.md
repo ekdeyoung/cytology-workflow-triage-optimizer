@@ -2,7 +2,6 @@
 
 AI-assisted cytology workflow triage and cytology QC detection project.
 
-Repository cleanup complete.
 
 ## Current functionality
 
