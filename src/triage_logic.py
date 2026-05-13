@@ -48,16 +48,16 @@ workload_interpretations = interpret_workload(summary)
 workflow_alerts = create_workflow_alerts(summary)
 
 with open("results/summary_report.txt", "w") as file:
-    file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
-    file.write(f"Report date: {today}\n\n")
+    file.write(f"CYTOLOGY TRIAGE SUMMARY | {today}\n\n")
 
     file.write(f"Total cases: {summary['total_cases']}\n")
     file.write(f"Urgent cases: {summary['urgent_cases']}\n")
     file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
     file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Pathologist review cases: {summary['pathologist_review_cases']}\n")
-    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n\n")
+    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
    
+    file.write("\nDAILY PERCENTAGES\n")
     file.write(f"Urgent %: {summary['urgent_pct']:.1f}%\n")
     file.write(f"Pathologist review %: {summary['review_pct']:.1f}%\n")
     file.write(f"Abnormal %: {summary['abnormal_pct']:.1f}%\n")
@@ -82,9 +82,10 @@ with open("results/summary_report.txt", "w") as file:
     most_common_reason_count = reason_counts.max()
 
     file.write(
-        f"Most common priority reason: {most_common_reason} ({most_common_reason_count} cases)\n\n"
+        f"Most common priority reason: {most_common_reason} ({most_common_reason_count} cases)\n"
     )
 
+    file.write("\nDAILY BREAKDOWN\n")
     for reason, count in reason_counts.items():
         file.write(f"{reason}: {count}\n")
 
