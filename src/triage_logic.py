@@ -78,6 +78,16 @@ with open("results/summary_report.txt", "w") as file:
 
     reason_counts = triage_queue["priority_reason"].value_counts()
 
+    priority_reason_order =[
+        "Low cellularity",
+        "Scan failure",
+        "HSIL detected",
+        "LSIL detected",
+        "ASCUS detected",
+        "Infection detected",
+        "Routine normal case"
+    ]
+
     most_common_reason = reason_counts.idxmax()
     most_common_reason_count = reason_counts.max()
 
@@ -86,8 +96,12 @@ with open("results/summary_report.txt", "w") as file:
     )
 
     file.write("\nDAILY BREAKDOWN\n")
-    for reason, count in reason_counts.items():
-        file.write(f"{reason}: {count}\n")
+
+    for reason in priority_reason_order:
+
+        if reason in reason_counts:
+            count = reason_counts[reason]
+            file.write(f"{reason}: {count}\n")
 
 print("\n=== SUMMARY ===")
 print("Urgent cases:", summary["urgent_cases"])
