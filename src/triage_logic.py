@@ -31,6 +31,10 @@ print(urgent_cases)
 
 pathologist_cases = get_pathologist_review_cases(triage_queue)
 
+high_priority_cases = triage_queue[
+    triage_queue["priority"] <= 5
+]
+
 print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)
 
@@ -39,6 +43,10 @@ today = datetime.today().strftime("%Y-%m-%d")
 triage_queue.to_csv(f"results/triage_report_{today}.csv", index=False)
 urgent_cases.to_csv("results/urgent_cases.csv", index=False)
 pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
+high_priority_cases.to_csv(
+    "results/high_priority_cases.csv",
+    index=False
+)
 
 
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
@@ -98,10 +106,14 @@ with open("results/summary_report.txt", "w") as file:
     file.write("\nDAILY BREAKDOWN\n")
 
     for reason in priority_reason_order:
+        matching_cases = triage_queue[
+            triage_queue["priority_reason"] == reason
+        ]
 
-        if reason in reason_counts:
-            count = reason_counts[reason]
+        if not matching_cases.empty:
+            count = len(matching_cases)
             file.write(f"{reason}: {count}\n")
+
 
 print("\n=== SUMMARY ===")
 print("Urgent cases:", summary["urgent_cases"])
