@@ -12,7 +12,10 @@ from triage_utils import (
     create_workflow_alerts
 )
 
-cases = pd.read_csv("data/raw/cytology_cases.csv")
+INPUT_FILE = "data/raw/cytology_cases.csv"
+
+cases = pd.read_csv(INPUT_FILE)
+
 validate_case_data(cases)
 
 
@@ -53,7 +56,7 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
     file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Pathologist review cases: {summary['pathologist_review_cases']}\n")
-    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
+    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n\n")
    
     file.write(f"Urgent %: {summary['urgent_pct']:.1f}%\n")
     file.write(f"Pathologist review %: {summary['review_pct']:.1f}%\n")
