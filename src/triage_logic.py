@@ -46,6 +46,7 @@ workflow_alerts = create_workflow_alerts(summary)
 
 with open("results/summary_report.txt", "w") as file:
     file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
+    file.write(f"Report date: {today}\n\n")
 
     file.write(f"Total cases: {summary['total_cases']}\n")
     file.write(f"Urgent cases: {summary['urgent_cases']}\n")
