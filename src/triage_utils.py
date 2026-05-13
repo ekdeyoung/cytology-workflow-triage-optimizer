@@ -125,3 +125,21 @@ def get_urgent_cases(df):
 
 def get_pathologist_review_cases(df):
     return df[df["needs_attention"] == "pathologist_review"]
+
+def interpret_workload(summary):
+
+    interpretations = []
+
+    if summary["urgent_pct"] >= 30:
+        interpretations.append("High urgent workload")
+
+    if summary["abnormal_pct"] >= 40:
+        interpretations.append("Elevated abnormal case rate")
+
+    if summary["scan_failures"] / summary["total_cases"] >= 0.20:
+        interpretations.append("Elevated scan failure rate")
+
+    if not interpretations:
+        interpretations.append("Workflow within expected limits")
+
+    return interpretations
