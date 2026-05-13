@@ -74,12 +74,14 @@ def create_triage_queue(df):
 def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     total_cases = len(triage_queue)
 
-    urgent_pct = len(urgent_cases) / total_cases * 100
-    review_pct = len(pathologist_cases) / total_cases * 100
-
     abnormal_cases = triage_queue[triage_queue["diagnosis"] != "normal"]
     scan_failures = triage_queue[triage_queue["scan_status"] == "fail"]
     unsat_cases = triage_queue[triage_queue["adequacy"] == "unsat"]
+    
+    urgent_pct = len(urgent_cases) / total_cases * 100
+    review_pct = len(pathologist_cases) / total_cases * 100
+    abnormal_pct = len(abnormal_cases) / total_cases * 100
+
 
     return {
         "total_cases": total_cases,
@@ -87,9 +89,10 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "pathologist_review_cases": len(pathologist_cases),
         "urgent_pct": urgent_pct,
         "review_pct": review_pct,
+        "abnormal_pct": abnormal_pct,
         "abnormal_cases": len(abnormal_cases),
         "scan_failures": len(scan_failures),
-        "unsatisfactory_cases": len(unsat_cases),
+        "unsatisfactory_cases": len(unsat_cases), 
     }
 
 def validate_case_data(df):

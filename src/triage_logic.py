@@ -53,6 +53,7 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Urgent %: {summary['urgent_pct']:.1f}%\n")
     file.write(f"Pathologist review %: {summary['review_pct']:.1f}%\n")
     file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
+    file.write(f"Abnormal %: {summary['abnormal_pct']:.1f}%\n")
     file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
     if high_urgent_volume:
