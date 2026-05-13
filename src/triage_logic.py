@@ -8,7 +8,8 @@ from triage_utils import (
     validate_case_data,
     get_urgent_cases,
     get_pathologist_review_cases,
-    interpret_workload
+    interpret_workload,
+    create_workflow_alerts
 )
 
 cases = pd.read_csv("data/raw/cytology_cases.csv")
@@ -41,32 +42,28 @@ summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
 workload_interpretations = interpret_workload(summary)
 
-high_urgent_volume = summary["urgent_pct"] >= 30
-
-high_scan_failure_rate = (
-    summary["scan_failures"] / summary["total_cases"]
-) >= 0.20
+workflow_alerts = create_workflow_alerts(summary)
 
 with open("results/summary_report.txt", "w") as file:
     file.write("CYTOLOGY TRIAGE SUMMARY\n\n")
-    
+
     file.write(f"Total cases: {summary['total_cases']}\n")
     file.write(f"Urgent cases: {summary['urgent_cases']}\n")
+    file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
+    file.write(f"Scan failures: {summary['scan_failures']}\n")
     file.write(f"Pathologist review cases: {summary['pathologist_review_cases']}\n")
+    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
    
     file.write(f"Urgent %: {summary['urgent_pct']:.1f}%\n")
     file.write(f"Pathologist review %: {summary['review_pct']:.1f}%\n")
     file.write(f"Abnormal %: {summary['abnormal_pct']:.1f}%\n")
     
-    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
-    file.write(f"Scan failures: {summary['scan_failures']}\n")
-    file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
-    
-    if high_urgent_volume:
+
+    if workflow_alerts:
         file.write("\nWORKFLOW ALERT\n")
-        file.write("High urgent case volume detected\n")
-    if high_scan_failure_rate:
-        file.write("High scan failure rate detected\n")
+
+        for alert in workflow_alerts:
+            file.write(f"{alert}\n")
 
     file.write("\nWORKLOAD INTERPRETATION\n")
 

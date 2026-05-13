@@ -143,3 +143,15 @@ def interpret_workload(summary):
         interpretations.append("Workflow within expected limits")
 
     return interpretations
+
+def create_workflow_alerts(summary):
+
+    alerts = []
+
+    if summary["urgent_pct"] >= 30:
+        alerts.append("High urgent case volume detected")
+
+    if summary["scan_failures"] / summary["total_cases"] >= 0.20:
+        alerts.append("High scan failure rate detected")
+
+    return alerts
