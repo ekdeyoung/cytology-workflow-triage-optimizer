@@ -1,5 +1,7 @@
 import pandas as pd
 
+TURNAROUND_THRESHOLD_DAYS = 5
+
 def assign_priority(adequacy, scan_status, diagnosis):
     
     if adequacy.lower() in ["unsat", "unsatisfactory"]:
@@ -106,8 +108,8 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "longest_turnaround_days": (
             triage_queue["turnaround_days"].max()
         ),
-        "cases_over_5_days": (
-            triage_queue["turnaround_days"] > 5
+        "cases_over_threshold": (
+            triage_queue["turnaround_days"] > TURNAROUND_THRESHOLD_DAYS
         ).sum(), 
     }
 
@@ -155,11 +157,11 @@ def interpret_workload(summary):
     if summary["scan_failures"] / summary["total_cases"] >= 0.20:
         interpretations.append("Elevated scan failure rate")
 
+    if summary["cases_over_threshold"] > 0:
+        interpretations.append("Delayed turnaround time cases present")
+
     if not interpretations:
         interpretations.append("Workflow within expected limits")
-
-    if summary["cases_over_5_days"] > 0:
-        interpretations.append("Delayed turnaround time cases present")
 
     return interpretations
 
@@ -173,7 +175,7 @@ def create_workflow_alerts(summary):
     if summary["scan_failures"] / summary["total_cases"] >= 0.20:
         alerts.append("High scan failure rate detected")
 
-    if summary["cases_over_5_days"] > 0:
+    if summary["cases_over_threshold"] > 0:
         alerts.append(
             "Cases exceeding turnaround threshold detected"
         )

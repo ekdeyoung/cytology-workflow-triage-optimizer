@@ -73,7 +73,10 @@ with open("results/summary_report.txt", "w") as file:
     file.write("\nTURNAROUND TIME METRICS\n")
     file.write(f"Average turnaround days: {summary['average_turnaround_days']}\n")
     file.write(f"Longest turnaround days: {summary['longest_turnaround_days']}\n")
-    file.write(f"Cases over 5 days: {summary['cases_over_5_days']}\n")
+    file.write(
+        f"Cases over threshold: "
+        f"{summary['cases_over_threshold']}\n"
+    )
 
     if workflow_alerts:
         file.write("\nWORKFLOW ALERT\n")
@@ -132,4 +135,7 @@ print(f"Scan failures: {summary['scan_failures']}")
 print(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}")
 print(f"Average turnaround days: {summary['average_turnaround_days']}")
 print(f"Longest turnaround days: {summary['longest_turnaround_days']}")
-print(f"Cases over 5 days: {summary['cases_over_5_days']}")
+print(
+    f"Cases over threshold: "
+    f"{summary['cases_over_threshold']}"
+)
