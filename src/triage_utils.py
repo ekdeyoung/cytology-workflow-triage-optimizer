@@ -46,6 +46,13 @@ def assign_attention_flag(priority):
     
 
 def create_triage_queue(df):
+    df["received_date"] = pd.to_datetime(df["received_date"])
+    df["reported_date"] = pd.to_datetime(df["reported_date"])
+
+    df["turnaround_days"] = (
+        df["reported_date"] - df["received_date"]
+    ).dt.days
+
     df["priority"] = df.apply(
         lambda row: assign_priority(
             row["adequacy"], 
@@ -92,7 +99,16 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "abnormal_pct": abnormal_pct,
         "abnormal_cases": len(abnormal_cases),
         "scan_failures": len(scan_failures),
-        "unsatisfactory_cases": len(unsat_cases), 
+        "unsatisfactory_cases": len(unsat_cases),
+        "average_turnaround_days": round(
+            triage_queue["turnaround_days"].mean(), 1
+        ),
+        "longest_turnaround_days": (
+            triage_queue["turnaround_days"].max()
+        ),
+        "cases_over_5_days": (
+            triage_queue["turnaround_days"] > 5
+        ).sum(), 
     }
 
 def validate_case_data(df):
@@ -142,6 +158,9 @@ def interpret_workload(summary):
     if not interpretations:
         interpretations.append("Workflow within expected limits")
 
+    if summary["cases_over_5_days"] > 0:
+        interpretations.append("Delayed turnaround time cases present")
+
     return interpretations
 
 def create_workflow_alerts(summary):
@@ -153,5 +172,10 @@ def create_workflow_alerts(summary):
 
     if summary["scan_failures"] / summary["total_cases"] >= 0.20:
         alerts.append("High scan failure rate detected")
+
+    if summary["cases_over_5_days"] > 0:
+        alerts.append(
+            "Cases exceeding turnaround threshold detected"
+        )
 
     return alerts
