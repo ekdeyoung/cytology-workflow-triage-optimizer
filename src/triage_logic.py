@@ -1,7 +1,9 @@
 import logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(levelname)s: %(message)s"
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    filename="results/workflow.log",
+    filemode="a"
 )
 
 import pandas as pd
@@ -24,7 +26,13 @@ INPUT_FILE = "data/raw/cytology_cases.csv"
 cases = pd.read_csv(INPUT_FILE)
 logging.info(f"Loaded input file: {INPUT_FILE}")
 
-validate_case_data(cases)
+try:
+    validate_case_data(cases)
+    logging.info("Case data validation passed")
+
+except ValueError as error:
+    logging.error(f"Validation failed: {error}")
+    raise
 
 
 triage_queue = create_triage_queue(cases)
