@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 
 from triage_utils import (
+    TURNAROUND_THRESHOLD_DAYS,
     create_triage_queue, 
     create_summary_metrics, 
     validate_case_data,
@@ -74,7 +75,7 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Average turnaround days: {summary['average_turnaround_days']}\n")
     file.write(f"Longest turnaround days: {summary['longest_turnaround_days']}\n")
     file.write(
-        f"Cases over threshold: "
+        f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
         f"{summary['cases_over_threshold']}\n"
     )
 
@@ -136,6 +137,6 @@ print(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}")
 print(f"Average turnaround days: {summary['average_turnaround_days']}")
 print(f"Longest turnaround days: {summary['longest_turnaround_days']}")
 print(
-    f"Cases over threshold: "
+    f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
     f"{summary['cases_over_threshold']}"
 )
