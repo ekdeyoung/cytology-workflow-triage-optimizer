@@ -1,6 +1,9 @@
 import pandas as pd
 
 TURNAROUND_THRESHOLD_DAYS = 5
+URGENT_CASE_THRESHOLD_PCT = 30
+ABNORMAL_CASE_THRESHOLD_PCT = 40
+SCAN_FAILURE_THRESHOLD_PCT = 0.20
 
 def assign_priority(adequacy, scan_status, diagnosis):
     
@@ -148,13 +151,16 @@ def interpret_workload(summary):
 
     interpretations = []
 
-    if summary["urgent_pct"] >= 30:
+    if (summary["urgent_pct"] 
+        >= URGENT_CASE_THRESHOLD_PCT):
         interpretations.append("High urgent workload")
 
-    if summary["abnormal_pct"] >= 40:
+    if (summary["abnormal_pct"] 
+        >= ABNORMAL_CASE_THRESHOLD_PCT):
         interpretations.append("Elevated abnormal case rate")
 
-    if summary["scan_failures"] / summary["total_cases"] >= 0.20:
+    if (summary["scan_failures"] / summary["total_cases"] 
+        >= SCAN_FAILURE_THRESHOLD_PCT):
         interpretations.append("Elevated scan failure rate")
 
     if summary["cases_over_threshold"] > 0:
@@ -169,15 +175,14 @@ def create_workflow_alerts(summary):
 
     alerts = []
 
-    if summary["urgent_pct"] >= 30:
+    if summary["urgent_pct"] >= URGENT_CASE_THRESHOLD_PCT:
         alerts.append("High urgent case volume detected")
 
-    if summary["scan_failures"] / summary["total_cases"] >= 0.20:
+    if (summary["scan_failures"] / summary["total_cases"] 
+        >= SCAN_FAILURE_THRESHOLD_PCT):
         alerts.append("High scan failure rate detected")
 
     if summary["cases_over_threshold"] > 0:
-        alerts.append(
-            "Cases exceeding turnaround threshold detected"
-        )
+        alerts.append("Cases exceeding turnaround threshold detected")
 
     return alerts
