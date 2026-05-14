@@ -1,3 +1,9 @@
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s: %(message)s"
+)
+
 import pandas as pd
 
 from datetime import datetime
@@ -16,12 +22,13 @@ from triage_utils import (
 INPUT_FILE = "data/raw/cytology_cases.csv"
 
 cases = pd.read_csv(INPUT_FILE)
+logging.info(f"Loaded input file: {INPUT_FILE}")
 
 validate_case_data(cases)
 
 
 triage_queue = create_triage_queue(cases)
-print("\n=== CYTOLOGY TRIAGE REPORT ===\n")
+logging.info("=== CYTOLOGY TRIAGE REPORT ===")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
 
@@ -49,12 +56,13 @@ high_priority_cases.to_csv(
     index=False
 )
 
-
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
 workload_interpretations = interpret_workload(summary)
 
 workflow_alerts = create_workflow_alerts(summary)
+for alert in workflow_alerts:
+    logging.warning(alert)
 
 with open("results/summary_report.txt", "w") as file:
     file.write(f"CYTOLOGY TRIAGE SUMMARY | {today}\n\n")
