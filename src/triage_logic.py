@@ -135,7 +135,13 @@ with open("results/summary_report.txt", "w") as file:
 
     qc_flag_counts = triage_queue["qc_flag"].value_counts()
 
-    for flag, count in qc_flag_counts.items():
+    qc_flag_order = [
+        "qc_review",
+        "qc_pass"
+    ]
+
+    for flag in qc_flag_order:
+        count = qc_flag_counts.get(flag, 0)
         file.write(f"{flag}: {count}\n")
 
     if workflow_alerts:
