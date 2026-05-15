@@ -9,6 +9,7 @@ or slides that may need rescanning.
 
 QC_REVIEW = "qc_review"
 QC_PASS = "qc_pass"
+QC_SCORE_THRESHOLD = 0.7
 
 def get_qc_issue_types():
     return [
@@ -21,7 +22,10 @@ def get_qc_issue_types():
     ]
 
 def assign_qc_flag(blur_score, artifact_risk_score):
-    if blur_score >= 0.7 or artifact_risk_score >= 0.7:
+    if (
+        blur_score >= QC_SCORE_THRESHOLD
+        or artifact_risk_score >= QC_SCORE_THRESHOLD
+    ):
         return QC_REVIEW
     
     return QC_PASS
