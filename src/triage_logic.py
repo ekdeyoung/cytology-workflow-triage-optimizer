@@ -28,13 +28,16 @@ from qc_detector import assign_qc_flag, QC_SCORE_THRESHOLD
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
+
+AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"
+
 STATIC_OUTPUT_FILES = [
     "summary_report.txt",
     "urgent_cases.csv",
     "pathologist_review_cases.csv",
     "high_priority_cases.csv",
     "qc_review_cases.csv",
-    "ai_workflow_overview.txt"
+    AI_WORKFLOW_OVERVIEW_FILE
 ]
 
 cases = pd.read_csv(INPUT_FILE)
@@ -258,7 +261,10 @@ logging.info(
     f"QC score threshold used: {QC_SCORE_THRESHOLD}"
 )
 
-with open("results/ai_workflow_overview.txt", "w") as file:
+with open(
+    f"{OUTPUT_DIR}/{AI_WORKFLOW_OVERVIEW_FILE}",
+    "w"
+) as file:
     file.write("AI WORKFLOW OVERVIEW\n\n")
 
     for section, items in ai_workflow_components.items():
