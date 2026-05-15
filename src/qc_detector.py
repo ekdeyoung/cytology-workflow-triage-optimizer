@@ -22,3 +22,9 @@ def assign_qc_flag(blur_score, artifact_risk_score):
         return "qc_review"
     
     return "qc_pass"
+
+def get_qc_workflow_states():
+    return [
+        "qc_review",
+        "qc_pass"
+    ]
