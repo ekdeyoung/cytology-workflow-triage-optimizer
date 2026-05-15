@@ -16,3 +16,9 @@ def get_qc_issue_types():
         "coverslip_issue",
         "scan_failure"
     ]
+
+def assign_qc_flag(blur_score, artifact_risk_score):
+    if blur_score >= 0.7 or artifact_risk_score >= 0.7:
+        return "qc_review"
+    
+    return "qc_pass"
