@@ -31,8 +31,10 @@ OUTPUT_DIR = "results"
 
 AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"
 
+SUMMARY_REPORT_FILE = "summary_report.txt"
+
 STATIC_OUTPUT_FILES = [
-    "summary_report.txt",
+    SUMMARY_REPORT_FILE,
     "urgent_cases.csv",
     "pathologist_review_cases.csv",
     "high_priority_cases.csv",
@@ -136,7 +138,11 @@ workflow_alerts = create_workflow_alerts(summary)
 for alert in workflow_alerts:
     logging.warning(alert)
 
-with open("results/summary_report.txt", "w") as file:
+with open(
+    f"{OUTPUT_DIR}/{SUMMARY_REPORT_FILE}",
+    "w"
+) as file:
+
     file.write(f"CYTOLOGY TRIAGE SUMMARY | {today}\n\n")
 
     file.write(f"Total cases: {summary['total_cases']}\n")
