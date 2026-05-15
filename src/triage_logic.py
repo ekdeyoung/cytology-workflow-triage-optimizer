@@ -174,4 +174,15 @@ logging.info(
     f"{list(ai_workflow_components.keys())}"
 )
 
+with open("results/ai_workflow_overview.txt", "w") as file:
+    file.write("AI WORKFLOW OVERVIEW\n\n")
+
+    for section, items in ai_workflow_components.items():
+        file.write(f"{section}\n")
+
+        for item in items:
+            file.write(f"- {item}\n")
+
+        file.write("\n")
+
 logging.info("Cytology workflow completed successfully")
