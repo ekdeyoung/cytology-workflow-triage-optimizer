@@ -68,6 +68,10 @@ high_priority_cases = triage_queue[
     triage_queue["priority"] <= 5
 ]
 
+qc_review_cases = triage_queue[
+    triage_queue["qc_flag"] == "qc_review"
+]
+
 print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)
 
@@ -78,6 +82,10 @@ urgent_cases.to_csv("results/urgent_cases.csv", index=False)
 pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
 high_priority_cases.to_csv(
     "results/high_priority_cases.csv",
+    index=False
+)
+qc_review_cases.to_csv(
+    "results/qc_review_cases.csv",
     index=False
 )
 
