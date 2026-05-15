@@ -216,6 +216,11 @@ logging.info(
     f"{list(ai_workflow_components.keys())}"
 )
 
+logging.info(
+    f"QC review cases identified: "
+    f"{summary['qc_review_cases']}"
+)
+
 with open("results/ai_workflow_overview.txt", "w") as file:
     file.write("AI WORKFLOW OVERVIEW\n\n")
 
