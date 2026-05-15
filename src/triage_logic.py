@@ -17,8 +17,9 @@ from triage_utils import (
     validate_case_data,
     get_urgent_cases,
     get_pathologist_review_cases,
+    get_qc_review_cases,
     interpret_workload,
-    create_workflow_alerts
+    create_workflow_alerts,
 )
 
 from visualization import summarize_ai_workflow_components
@@ -68,9 +69,7 @@ high_priority_cases = triage_queue[
     triage_queue["priority"] <= 5
 ]
 
-qc_review_cases = triage_queue[
-    triage_queue["qc_flag"] == "qc_review"
-]
+qc_review_cases = get_qc_review_cases(triage_queue)
 
 print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)

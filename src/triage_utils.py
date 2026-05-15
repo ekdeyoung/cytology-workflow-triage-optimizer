@@ -151,6 +151,9 @@ def get_urgent_cases(df):
 def get_pathologist_review_cases(df):
     return df[df["needs_attention"] == "pathologist_review"]
 
+def get_qc_review_cases(df):
+    return df[df["qc_flag"] == "qc_review"]
+
 def interpret_workload(summary):
 
     interpretations = []
