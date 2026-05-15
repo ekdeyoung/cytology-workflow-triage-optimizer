@@ -92,6 +92,13 @@ logging.info("Workflow reports exported successfully")
 
 logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
+logging.info(
+    "Generated output files: "
+    "summary_report.txt, urgent_cases.csv, "
+    "pathologist_review_cases.csv, high_priority_cases.csv, "
+    "qc_review_cases.csv"
+)
+
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
 workload_interpretations = interpret_workload(summary)
