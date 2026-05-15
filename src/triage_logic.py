@@ -98,7 +98,8 @@ generated_files = [
     "urgent_cases.csv",
     "pathologist_review_cases.csv",
     "high_priority_cases.csv",
-    "qc_review_cases.csv"
+    "qc_review_cases.csv",
+    "ai_workflow_overview.txt",
 ]
 
 logging.info(
