@@ -113,7 +113,19 @@ logging.info(
 )
 
 
-summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
+summary = create_summary_metrics(
+    triage_queue, 
+    urgent_cases, 
+    pathologist_cases
+)
+
+logging.info(
+    "Summary metrics | "
+    f"total_cases={summary['total_cases']} | "
+    f"urgent_cases={summary['urgent_cases']} | "
+    f"pathologist_review_cases={summary['pathologist_review_cases']} | "
+    f"qc_review_cases={summary['qc_review_cases']}"
+)
 
 workload_interpretations = interpret_workload(summary)
 
