@@ -23,6 +23,8 @@ from triage_utils import (
 
 from visualization import summarize_ai_workflow_components
 
+from qc_detector import assign_qc_flag
+
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
 
@@ -39,6 +41,15 @@ except ValueError as error:
     raise
 
 triage_queue = create_triage_queue(cases)
+
+triage_queue["qc_flag"] = triage_queue.apply(
+    lambda row: assign_qc_flag(
+        row["blur_score"],
+        row["artifact_risk_score"]
+    ),
+    axis=1
+)
+
 logging.info(
     f"Processed {len(triage_queue)} cytology cases"
 )
