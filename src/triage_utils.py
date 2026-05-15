@@ -4,6 +4,7 @@ TURNAROUND_THRESHOLD_DAYS = 5
 URGENT_CASE_THRESHOLD_PCT = 30
 ABNORMAL_CASE_THRESHOLD_PCT = 40
 SCAN_FAILURE_THRESHOLD_PCT = 0.20
+QC_REVIEW_THRESHOLD_PCT = 50
 
 def assign_priority(adequacy, scan_status, diagnosis):
     
@@ -97,6 +98,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     qc_review_cases = triage_queue[
         triage_queue["qc_flag"] == "qc_review"
     ]
+    qc_review_pct = len(qc_review_cases) / total_cases * 100
 
     return {
         "total_cases": total_cases,
@@ -118,6 +120,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
             triage_queue["turnaround_days"] > TURNAROUND_THRESHOLD_DAYS
         ).sum(), 
         "qc_review_cases": len(qc_review_cases),
+        "qc_review_pct": qc_review_pct,
     }
 
 def validate_case_data(df):
@@ -192,4 +195,7 @@ def create_workflow_alerts(summary):
     if summary["cases_over_threshold"] > 0:
         alerts.append("Cases exceeding turnaround threshold detected")
 
+    if summary["qc_review_pct"] >= QC_REVIEW_THRESHOLD_PCT:
+        alerts.append("High QC review volume detected")
+        
     return alerts
