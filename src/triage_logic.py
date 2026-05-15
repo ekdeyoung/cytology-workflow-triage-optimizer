@@ -64,6 +64,8 @@ high_priority_cases.to_csv(
     index=False
 )
 
+logging.info("Workflow reports exported successfully")
+
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
 workload_interpretations = interpret_workload(summary)
@@ -156,3 +158,5 @@ print(
     f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
     f"{summary['cases_over_threshold']}"
 )
+
+logging.info("Cytology workflow completed successfully")
