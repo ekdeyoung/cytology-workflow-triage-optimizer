@@ -92,12 +92,22 @@ logging.info("Workflow reports exported successfully")
 
 logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
-logging.info(
-    "Generated output files: "
-    "summary_report.txt, urgent_cases.csv, "
-    "pathologist_review_cases.csv, high_priority_cases.csv, "
+generated_files = [
+    "summary_report.txt",
+    "urgent_cases.csv",
+    "pathologist_review_cases.csv",
+    "high_priority_cases.csv",
     "qc_review_cases.csv"
+]
+
+logging.info(
+    f"Generated {len(generated_files)} output files"
 )
+
+logging.info(
+    f"Generated output files: {generated_files}"
+)
+
 
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
