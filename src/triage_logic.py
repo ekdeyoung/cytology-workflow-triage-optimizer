@@ -129,7 +129,8 @@ with open("results/summary_report.txt", "w") as file:
         f"QC review cases: "
         f"{summary['qc_review_cases']}\n"
     )
-    
+    file.write(f"QC review %: {summary['qc_review_pct']:.1f}%\n")
+
     if workflow_alerts:
         file.write("\nWORKFLOW ALERT\n")
 
@@ -192,6 +193,7 @@ print(
     f"{summary['cases_over_threshold']}"
 )
 print(f"QC review cases: {summary['qc_review_cases']}")
+print(f"QC review %: {summary['qc_review_pct']:.1f}%")
 
 ai_workflow_components = summarize_ai_workflow_components()
 
