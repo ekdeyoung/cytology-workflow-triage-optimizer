@@ -22,9 +22,9 @@ def get_qc_issue_types():
 
 def assign_qc_flag(blur_score, artifact_risk_score):
     if blur_score >= 0.7 or artifact_risk_score >= 0.7:
-        return "qc_review"
+        return QC_REVIEW
     
-    return "qc_pass"
+    return QC_PASS
 
 def get_qc_workflow_states():
     return [
