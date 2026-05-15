@@ -93,6 +93,7 @@ logging.info("Workflow reports exported successfully")
 logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
 generated_files = [
+    f"triage_report_{today}.csv",
     "summary_report.txt",
     "urgent_cases.csv",
     "pathologist_review_cases.csv",
