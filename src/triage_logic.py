@@ -22,6 +22,8 @@ from triage_utils import (
 )
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
+OUTPUT_DIR = "results"
+
 
 cases = pd.read_csv(INPUT_FILE)
 logging.info(f"Loaded input file: {INPUT_FILE}")
@@ -34,12 +36,11 @@ except ValueError as error:
     logging.error(f"Validation failed: {error}")
     raise
 
-
 triage_queue = create_triage_queue(cases)
 logging.info(
     f"Processed {len(triage_queue)} cytology cases"
 )
-logging.info("=== CYTOLOGY TRIAGE REPORT ===")
+logging.info("Starting cytology workflow analysis")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
 
@@ -68,6 +69,8 @@ high_priority_cases.to_csv(
 )
 
 logging.info("Workflow reports exported successfully")
+
+logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
 summary = create_summary_metrics(triage_queue, urgent_cases, pathologist_cases)
 
