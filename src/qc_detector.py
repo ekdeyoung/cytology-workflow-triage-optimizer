@@ -7,6 +7,9 @@ such as blur, staining variation, low contrast, scan artifacts,
 or slides that may need rescanning.
 """
 
+QC_REVIEW = "qc_review"
+QC_PASS = "qc_pass"
+
 def get_qc_issue_types():
     return [
         "blur",
@@ -25,6 +28,6 @@ def assign_qc_flag(blur_score, artifact_risk_score):
 
 def get_qc_workflow_states():
     return [
-        "qc_review",
-        "qc_pass"
+        QC_REVIEW,
+        QC_PASS
     ]
