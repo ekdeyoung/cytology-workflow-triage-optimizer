@@ -116,12 +116,7 @@ with open("results/summary_report.txt", "w") as file:
     file.write(f"Abnormal %: {summary['abnormal_pct']:.1f}%\n")
     
     file.write("\nTURNAROUND TIME METRICS\n")
-    file.write("\nQC METRICS\n")
-    file.write(
-        f"QC review cases: "
-        f"{summary['qc_review_cases']}\n"
-    )
-    
+
     file.write(f"Average turnaround days: {summary['average_turnaround_days']}\n")
     file.write(f"Longest turnaround days: {summary['longest_turnaround_days']}\n")
     file.write(
@@ -129,6 +124,12 @@ with open("results/summary_report.txt", "w") as file:
         f"{summary['cases_over_threshold']}\n"
     )
 
+    file.write("\nQC METRICS\n")
+    file.write(
+        f"QC review cases: "
+        f"{summary['qc_review_cases']}\n"
+    )
+    
     if workflow_alerts:
         file.write("\nWORKFLOW ALERT\n")
 
