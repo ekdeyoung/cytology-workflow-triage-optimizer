@@ -36,6 +36,9 @@ except ValueError as error:
 
 
 triage_queue = create_triage_queue(cases)
+logging.info(
+    f"Processed {len(triage_queue)} cytology cases"
+)
 logging.info("=== CYTOLOGY TRIAGE REPORT ===")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
