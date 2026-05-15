@@ -12,3 +12,10 @@ def get_ml_target_labels():
         "pathologist_review",
         "routine"
     ]
+
+def summarize_workflow_targets(triage_queue):
+    return (
+        triage_queue["needs_attention"]
+        .value_counts()
+        .to_dict()
+    )
