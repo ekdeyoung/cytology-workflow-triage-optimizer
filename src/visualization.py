@@ -6,9 +6,9 @@ Create charts and visual summaries for cytology workload,
 turnaround time, QC metrics, and triage performance.
 """
 
-from src.image_features import describe_image_feature_plan
-from src.qc_detector import get_qc_issue_types
-from src.ml_scoring import get_ml_target_labels
+from image_features import describe_image_feature_plan
+from qc_detector import get_qc_issue_types
+from ml_scoring import get_ml_target_labels
 
 
 def summarize_ai_workflow_components():

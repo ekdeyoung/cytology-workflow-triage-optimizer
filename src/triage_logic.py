@@ -21,6 +21,8 @@ from triage_utils import (
     create_workflow_alerts
 )
 
+from visualization import summarize_ai_workflow_components
+
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
 
@@ -163,6 +165,13 @@ print(f"Longest turnaround days: {summary['longest_turnaround_days']}")
 print(
     f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
     f"{summary['cases_over_threshold']}"
+)
+
+ai_workflow_components = summarize_ai_workflow_components()
+
+logging.info(
+    f"AI workflow components planned: "
+    f"{list(ai_workflow_components.keys())}"
 )
 
 logging.info("Cytology workflow completed successfully")
