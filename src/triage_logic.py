@@ -24,7 +24,7 @@ from triage_utils import (
 
 from visualization import summarize_ai_workflow_components
 
-from qc_detector import assign_qc_flag
+from qc_detector import assign_qc_flag, QC_SCORE_THRESHOLD
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
@@ -252,6 +252,10 @@ logging.info(
 logging.info(
     f"QC review cases identified: "
     f"{summary['qc_review_cases']}"
+)
+
+logging.info(
+    f"QC score threshold used: {QC_SCORE_THRESHOLD}"
 )
 
 with open("results/ai_workflow_overview.txt", "w") as file:
