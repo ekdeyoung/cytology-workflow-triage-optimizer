@@ -33,6 +33,8 @@ AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"
 
 SUMMARY_REPORT_FILE = "summary_report.txt"
 
+TRIAGE_REPORT_PREFIX = "triage_report"
+
 STATIC_OUTPUT_FILES = [
     SUMMARY_REPORT_FILE,
     "urgent_cases.csv",
@@ -88,7 +90,15 @@ print(pathologist_cases)
 
 today = datetime.today().strftime("%Y-%m-%d")
 
-triage_queue.to_csv(f"results/triage_report_{today}.csv", index=False)
+triage_report_file = (
+    f"{TRIAGE_REPORT_PREFIX}_{today}.csv"
+)
+
+triage_queue.to_csv(
+    f"{OUTPUT_DIR}/{triage_report_file}",
+    index=False
+)
+    
 urgent_cases.to_csv("results/urgent_cases.csv", index=False)
 pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
 high_priority_cases.to_csv(
@@ -105,7 +115,7 @@ logging.info("Workflow reports exported successfully")
 logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
 generated_files = [
-    f"triage_report_{today}.csv",
+    triage_report_file,
     *STATIC_OUTPUT_FILES
 ]
 
