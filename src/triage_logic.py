@@ -130,12 +130,20 @@ with open("results/summary_report.txt", "w") as file:
         f"{summary['qc_review_cases']}\n"
     )
     file.write(f"QC review %: {summary['qc_review_pct']:.1f}%\n")
+    
+    file.write("\nQC FLAG BREAKDOWN\n")
+
+    qc_flag_counts = triage_queue["qc_flag"].value_counts()
+
+    for flag, count in qc_flag_counts.items():
+        file.write(f"{flag}: {count}\n")
 
     if workflow_alerts:
         file.write("\nWORKFLOW ALERT\n")
 
         for alert in workflow_alerts:
             file.write(f"{alert}\n")
+
 
     file.write("\nWORKLOAD INTERPRETATION\n")
 
