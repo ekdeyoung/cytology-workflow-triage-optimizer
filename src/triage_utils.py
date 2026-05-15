@@ -176,6 +176,9 @@ def interpret_workload(summary):
     if summary["cases_over_threshold"] > 0:
         interpretations.append("Delayed turnaround time cases present")
 
+    if summary["qc_review_pct"] >= QC_REVIEW_THRESHOLD_PCT:
+        interpretations.append("Elevated QC review burden")
+
     if not interpretations:
         interpretations.append("Workflow within expected limits")
 
@@ -197,5 +200,5 @@ def create_workflow_alerts(summary):
 
     if summary["qc_review_pct"] >= QC_REVIEW_THRESHOLD_PCT:
         alerts.append("High QC review volume detected")
-        
+
     return alerts
