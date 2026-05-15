@@ -232,4 +232,6 @@ with open("results/ai_workflow_overview.txt", "w") as file:
 
         file.write("\n")
 
+logging.info("AI workflow overview exported successfully")
+
 logging.info("Cytology workflow completed successfully")
