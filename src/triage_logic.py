@@ -177,6 +177,7 @@ print(
     f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
     f"{summary['cases_over_threshold']}"
 )
+print(f"QC review cases: {summary['qc_review_cases']}")
 
 ai_workflow_components = summarize_ai_workflow_components()
 

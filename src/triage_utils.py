@@ -94,6 +94,9 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     review_pct = len(pathologist_cases) / total_cases * 100
     abnormal_pct = len(abnormal_cases) / total_cases * 100
 
+    qc_review_cases = triage_queue[
+        triage_queue["qc_flag"] == "qc_review"
+    ]
 
     return {
         "total_cases": total_cases,
@@ -114,6 +117,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "cases_over_threshold": (
             triage_queue["turnaround_days"] > TURNAROUND_THRESHOLD_DAYS
         ).sum(), 
+        "qc_review_cases": len(qc_review_cases),
     }
 
 def validate_case_data(df):
