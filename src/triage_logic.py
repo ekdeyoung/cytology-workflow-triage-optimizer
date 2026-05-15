@@ -28,7 +28,14 @@ from qc_detector import assign_qc_flag
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
-
+STATIC_OUTPUT_FILES = [
+    "summary_report.txt",
+    "urgent_cases.csv",
+    "pathologist_review_cases.csv",
+    "high_priority_cases.csv",
+    "qc_review_cases.csv",
+    "ai_workflow_overview.txt"
+]
 
 cases = pd.read_csv(INPUT_FILE)
 logging.info(f"Loaded input file: {INPUT_FILE}")
@@ -94,12 +101,7 @@ logging.info(f"Reports exported to: {OUTPUT_DIR}")
 
 generated_files = [
     f"triage_report_{today}.csv",
-    "summary_report.txt",
-    "urgent_cases.csv",
-    "pathologist_review_cases.csv",
-    "high_priority_cases.csv",
-    "qc_review_cases.csv",
-    "ai_workflow_overview.txt",
+    *STATIC_OUTPUT_FILES
 ]
 
 logging.info(
