@@ -6,6 +6,16 @@ ABNORMAL_CASE_THRESHOLD_PCT = 40
 SCAN_FAILURE_THRESHOLD_PCT = 0.20
 QC_REVIEW_THRESHOLD_PCT = 50
 
+PRIORITY_REASON_ORDER =[
+    "Low cellularity",
+    "Scan failure",
+    "HSIL detected",
+    "LSIL detected",
+    "ASCUS detected",
+    "Infection detected",
+    "Routine normal case"
+]
+
 def assign_priority(adequacy, scan_status, diagnosis):
     
     if adequacy.lower() in ["unsat", "unsatisfactory"]:

@@ -20,6 +20,7 @@ from triage_utils import (
     get_qc_review_cases,
     interpret_workload,
     create_workflow_alerts,
+    PRIORITY_REASON_ORDER,
 )
 
 from visualization import summarize_ai_workflow_components
@@ -213,16 +214,6 @@ with open(
 
     reason_counts = triage_queue["priority_reason"].value_counts()
 
-    priority_reason_order =[
-        "Low cellularity",
-        "Scan failure",
-        "HSIL detected",
-        "LSIL detected",
-        "ASCUS detected",
-        "Infection detected",
-        "Routine normal case"
-    ]
-
     most_common_reason = reason_counts.idxmax()
     most_common_reason_count = reason_counts.max()
 
@@ -232,7 +223,7 @@ with open(
 
     file.write("\nDAILY BREAKDOWN\n")
 
-    for reason in priority_reason_order:
+    for reason in PRIORITY_REASON_ORDER:
         matching_cases = triage_queue[
             triage_queue["priority_reason"] == reason
         ]
