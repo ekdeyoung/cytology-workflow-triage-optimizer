@@ -273,6 +273,10 @@ logging.info(
     f"QC flag reporting order: {QC_FLAG_ORDER}"
 )
 
+logging.info(
+    f"Priority reason reporting order: {PRIORITY_REASON_ORDER}"
+)
+
 with open(
     f"{OUTPUT_DIR}/{AI_WORKFLOW_OVERVIEW_FILE}",
     "w"
