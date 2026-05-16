@@ -10,6 +10,10 @@ or slides that may need rescanning.
 QC_REVIEW = "qc_review"
 QC_PASS = "qc_pass"
 QC_SCORE_THRESHOLD = 0.7
+QC_FLAG_ORDER = [
+    QC_REVIEW,
+    QC_PASS
+]
 
 def get_qc_issue_types():
     return [

@@ -24,7 +24,11 @@ from triage_utils import (
 
 from visualization import summarize_ai_workflow_components
 
-from qc_detector import assign_qc_flag, QC_SCORE_THRESHOLD
+from qc_detector import (
+    assign_qc_flag, 
+    QC_SCORE_THRESHOLD,
+    QC_FLAG_ORDER
+)
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
@@ -187,10 +191,7 @@ with open(
 
     qc_flag_counts = triage_queue["qc_flag"].value_counts()
 
-    qc_flag_order = [
-        "qc_review",
-        "qc_pass"
-    ]
+    qc_flag_order = QC_FLAG_ORDER
 
     for flag in qc_flag_order:
         count = qc_flag_counts.get(flag, 0)
