@@ -278,6 +278,10 @@ logging.info(
     f"QC score threshold used: {QC_SCORE_THRESHOLD}"
 )
 
+logging.info(
+    f"QC flag reporting order: {QC_FLAG_ORDER}"
+)
+
 with open(
     f"{OUTPUT_DIR}/{AI_WORKFLOW_OVERVIEW_FILE}",
     "w"
