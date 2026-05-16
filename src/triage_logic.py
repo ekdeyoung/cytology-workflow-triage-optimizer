@@ -44,14 +44,20 @@ SUMMARY_REPORT_FILE = "summary_report.txt"
 
 TRIAGE_REPORT_PREFIX = "triage_report"
 
+URGENT_CASES_FILE = "urgent_cases.csv"
+PATHOLOGIST_REVIEW_FILE = "pathologist_review_cases.csv"
+HIGH_PRIORITY_FILE = "high_priority_cases.csv"
+QC_REVIEW_FILE = "qc_review_cases.csv"
+
 STATIC_OUTPUT_FILES = [
     SUMMARY_REPORT_FILE,
-    "urgent_cases.csv",
-    "pathologist_review_cases.csv",
-    "high_priority_cases.csv",
-    "qc_review_cases.csv",
+    URGENT_CASES_FILE,
+    PATHOLOGIST_REVIEW_FILE,
+    HIGH_PRIORITY_FILE,
+    QC_REVIEW_FILE,
     AI_WORKFLOW_OVERVIEW_FILE
 ]
+
 
 cases = pd.read_csv(INPUT_FILE)
 logging.info(f"Loaded input file: {INPUT_FILE}")
@@ -108,14 +114,23 @@ triage_queue.to_csv(
     index=False
 )
     
-urgent_cases.to_csv("results/urgent_cases.csv", index=False)
-pathologist_cases.to_csv("results/pathologist_review_cases.csv", index=False)
-high_priority_cases.to_csv(
-    "results/high_priority_cases.csv",
+urgent_cases.to_csv(
+    f"{OUTPUT_DIR}/{URGENT_CASES_FILE}",
     index=False
 )
+
+pathologist_cases.to_csv(
+    f"{OUTPUT_DIR}/{PATHOLOGIST_REVIEW_FILE}", 
+    index=False
+)
+
+high_priority_cases.to_csv(
+    f"{OUTPUT_DIR}/{HIGH_PRIORITY_FILE}",
+    index=False
+)
+
 qc_review_cases.to_csv(
-    "results/qc_review_cases.csv",
+    f"{OUTPUT_DIR}/{QC_REVIEW_FILE}",
     index=False
 )
 
