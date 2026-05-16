@@ -24,6 +24,7 @@ from triage_utils import (
     IMMEDIATE_ATTENTION,
     PATHOLOGIST_REVIEW,
     ROUTINE,
+    ATTENTION_STATE_ORDER,
 )
 
 from visualization import summarize_ai_workflow_components
@@ -280,11 +281,7 @@ logging.info(
     f"Priority reason reporting order: {PRIORITY_REASON_ORDER}"
 )
 
-attention_states = [
-    IMMEDIATE_ATTENTION,
-    PATHOLOGIST_REVIEW,
-    ROUTINE
-]
+attention_states = ATTENTION_STATE_ORDER
 
 logging.info(
     f"Attention workflow states: {attention_states}"

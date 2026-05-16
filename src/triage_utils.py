@@ -20,6 +20,12 @@ IMMEDIATE_ATTENTION = "immediate_attention"
 PATHOLOGIST_REVIEW = "pathologist_review"
 ROUTINE = "routine"
 
+ATTENTION_STATE_ORDER = [
+    IMMEDIATE_ATTENTION,
+    PATHOLOGIST_REVIEW,
+    ROUTINE
+]
+
 def assign_priority(adequacy, scan_status, diagnosis):
     
     if adequacy.lower() in ["unsat", "unsatisfactory"]:
