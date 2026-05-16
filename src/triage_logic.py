@@ -287,6 +287,10 @@ logging.info(
     f"Attention workflow states: {attention_states}"
 )
 
+logging.info(
+    "ML target labels aligned with attention workflow states"
+)
+
 with open(
     f"{OUTPUT_DIR}/{AI_WORKFLOW_OVERVIEW_FILE}",
     "w"
