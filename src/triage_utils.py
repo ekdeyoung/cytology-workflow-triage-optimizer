@@ -16,6 +16,10 @@ PRIORITY_REASON_ORDER =[
     "Routine normal case"
 ]
 
+IMMEDIATE_ATTENTION = "immediate_attention"
+PATHOLOGIST_REVIEW = "pathologist_review"
+ROUTINE = "routine"
+
 def assign_priority(adequacy, scan_status, diagnosis):
     
     if adequacy.lower() in ["unsat", "unsatisfactory"]:
@@ -54,11 +58,11 @@ def assign_priority_reason(adequacy, scan_status, diagnosis):
 
 def assign_attention_flag(priority): 
     if priority in [1, 2]:
-        return "immediate_attention" 
+        return IMMEDIATE_ATTENTION
     elif priority in [3, 4, 5]:
-        return "pathologist_review"
+        return PATHOLOGIST_REVIEW
     else:
-        return "routine"
+        return ROUTINE
     
 
 def create_triage_queue(df):
