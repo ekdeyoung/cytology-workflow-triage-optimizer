@@ -1,11 +1,12 @@
 # Operational Thresholds
 
-TURNAROUND_THRESHOLD_DAYS = 5
-
-URGENT_CASE_THRESHOLD_PCT = 30
-ABNORMAL_CASE_THRESHOLD_PCT = 40
-SCAN_FAILURE_THRESHOLD_PCT = 0.20
-QC_REVIEW_THRESHOLD_PCT = 50
+WORKFLOW_THRESHOLDS = {
+    "turnaround_days": 5,
+    "urgent_case_pct": 30,
+    "abnormal_case_pct": 40,
+    "scan_failure_pct": 0.20,
+    "qc_review_pct": 50,
+}
 
 
 # Workflow Reporting Order

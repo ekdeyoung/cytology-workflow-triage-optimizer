@@ -11,7 +11,6 @@ import pandas as pd
 from datetime import datetime
 
 from triage_utils import (
-    TURNAROUND_THRESHOLD_DAYS,
     create_triage_queue, 
     create_summary_metrics, 
     validate_case_data,
@@ -26,6 +25,8 @@ from triage_utils import (
     ROUTINE,
     ATTENTION_STATE_ORDER,
 )
+
+from config import WORKFLOW_THRESHOLDS
 
 from visualization import summarize_ai_workflow_components
 
@@ -196,7 +197,7 @@ with open(
     file.write(f"Average turnaround days: {summary['average_turnaround_days']}\n")
     file.write(f"Longest turnaround days: {summary['longest_turnaround_days']}\n")
     file.write(
-        f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
+        f"Cases over {WORKFLOW_THRESHOLDS['turnaround_days']} days: "
         f"{summary['cases_over_threshold']}\n"
     )
 
@@ -266,7 +267,7 @@ print(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}")
 print(f"Average turnaround days: {summary['average_turnaround_days']}")
 print(f"Longest turnaround days: {summary['longest_turnaround_days']}")
 print(
-    f"Cases over {TURNAROUND_THRESHOLD_DAYS} days: "
+    f"Cases over {WORKFLOW_THRESHOLDS['turnaround_days']} days: "
     f"{summary['cases_over_threshold']}"
 )
 print(f"QC review cases: {summary['qc_review_cases']}")

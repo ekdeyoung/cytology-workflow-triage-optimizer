@@ -1,11 +1,7 @@
 import pandas as pd
 
 from config import (
-    TURNAROUND_THRESHOLD_DAYS,
-    URGENT_CASE_THRESHOLD_PCT,
-    ABNORMAL_CASE_THRESHOLD_PCT,
-    SCAN_FAILURE_THRESHOLD_PCT,
-    QC_REVIEW_THRESHOLD_PCT,
+    WORKFLOW_THRESHOLDS,
     PRIORITY_REASON_ORDER,
     IMMEDIATE_ATTENTION,
     PATHOLOGIST_REVIEW,
@@ -124,7 +120,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
             triage_queue["turnaround_days"].max()
         ),
         "cases_over_threshold": (
-            triage_queue["turnaround_days"] > TURNAROUND_THRESHOLD_DAYS
+            triage_queue["turnaround_days"] > WORKFLOW_THRESHOLDS["turnaround_days"]
         ).sum(), 
         "qc_review_cases": len(qc_review_cases),
         "qc_review_pct": qc_review_pct,
@@ -169,21 +165,21 @@ def interpret_workload(summary):
     interpretations = []
 
     if (summary["urgent_pct"] 
-        >= URGENT_CASE_THRESHOLD_PCT):
+        >= WORKFLOW_THRESHOLDS["urgent_case_pct"]):
         interpretations.append("High urgent workload")
 
     if (summary["abnormal_pct"] 
-        >= ABNORMAL_CASE_THRESHOLD_PCT):
+        >= WORKFLOW_THRESHOLDS["abnormal_case_pct"]):
         interpretations.append("Elevated abnormal case rate")
 
     if (summary["scan_failures"] / summary["total_cases"] 
-        >= SCAN_FAILURE_THRESHOLD_PCT):
+        >= WORKFLOW_THRESHOLDS["scan_failure_pct"]):
         interpretations.append("Elevated scan failure rate")
 
     if summary["cases_over_threshold"] > 0:
         interpretations.append("Delayed turnaround time cases present")
 
-    if summary["qc_review_pct"] >= QC_REVIEW_THRESHOLD_PCT:
+    if summary["qc_review_pct"] >= WORKFLOW_THRESHOLDS["qc_review_pct"]:
         interpretations.append("Elevated QC review burden")
 
     if not interpretations:
@@ -195,17 +191,17 @@ def create_workflow_alerts(summary):
 
     alerts = []
 
-    if summary["urgent_pct"] >= URGENT_CASE_THRESHOLD_PCT:
+    if summary["urgent_pct"] >= WORKFLOW_THRESHOLDS["urgent_case_pct"]:
         alerts.append("High urgent case volume detected")
 
     if (summary["scan_failures"] / summary["total_cases"] 
-        >= SCAN_FAILURE_THRESHOLD_PCT):
+        >= WORKFLOW_THRESHOLDS["scan_failure_pct"]):
         alerts.append("High scan failure rate detected")
 
     if summary["cases_over_threshold"] > 0:
         alerts.append("Cases exceeding turnaround threshold detected")
 
-    if summary["qc_review_pct"] >= QC_REVIEW_THRESHOLD_PCT:
+    if summary["qc_review_pct"] >= WORKFLOW_THRESHOLDS["qc_review_pct"]:
         alerts.append("High QC review volume detected")
 
     return alerts
