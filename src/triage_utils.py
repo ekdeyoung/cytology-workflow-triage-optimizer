@@ -6,27 +6,12 @@ from config import (
     ABNORMAL_CASE_THRESHOLD_PCT,
     SCAN_FAILURE_THRESHOLD_PCT,
     QC_REVIEW_THRESHOLD_PCT,
-)
-
-PRIORITY_REASON_ORDER =[
-    "Low cellularity",
-    "Scan failure",
-    "HSIL detected",
-    "LSIL detected",
-    "ASCUS detected",
-    "Infection detected",
-    "Routine normal case"
-]
-
-IMMEDIATE_ATTENTION = "immediate_attention"
-PATHOLOGIST_REVIEW = "pathologist_review"
-ROUTINE = "routine"
-
-ATTENTION_STATE_ORDER = [
+    PRIORITY_REASON_ORDER,
     IMMEDIATE_ATTENTION,
     PATHOLOGIST_REVIEW,
-    ROUTINE
-]
+    ROUTINE,
+    ATTENTION_STATE_ORDER,
+)
 
 def assign_priority(adequacy, scan_status, diagnosis):
     
