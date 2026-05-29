@@ -7,6 +7,7 @@ from config import (
     PATHOLOGIST_REVIEW,
     ROUTINE,
     ATTENTION_STATE_ORDER,
+    PRIORITY_TO_ATTENTION_STATE,
 )
 
 def assign_priority(adequacy, scan_status, diagnosis):
@@ -46,12 +47,7 @@ def assign_priority_reason(adequacy, scan_status, diagnosis):
     return diagnosis_map.get(diagnosis.lower(), "Unknown finding")
 
 def assign_attention_flag(priority): 
-    if priority in [1, 2]:
-        return IMMEDIATE_ATTENTION
-    elif priority in [3, 4, 5]:
-        return PATHOLOGIST_REVIEW
-    else:
-        return ROUTINE
+    return PRIORITY_TO_ATTENTION_STATE.get(priority, ROUTINE)
     
 
 def create_triage_queue(df):
