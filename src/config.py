@@ -69,6 +69,20 @@ PRIORITY_TO_ATTENTION_STATE = {
     99: ROUTINE,
 }
 
+
+# QC Workflow Configuration
+
+QC_WORKFLOW_CONFIG = {
+    "score_threshold": 0.7,
+    "review_state": "qc_review",
+    "pass_state": "qc_pass",
+    "flag_order": [
+        "qc_review",
+        "qc_pass",
+    ],
+}
+
+
 # Export File Configuration
 
 AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"

@@ -7,13 +7,12 @@ such as blur, staining variation, low contrast, scan artifacts,
 or slides that may need rescanning.
 """
 
-QC_REVIEW = "qc_review"
-QC_PASS = "qc_pass"
-QC_SCORE_THRESHOLD = 0.7
-QC_FLAG_ORDER = [
-    QC_REVIEW,
-    QC_PASS
-]
+from config import QC_WORKFLOW_CONFIG
+
+QC_REVIEW = QC_WORKFLOW_CONFIG["review_state"]
+QC_PASS = QC_WORKFLOW_CONFIG["pass_state"]
+QC_SCORE_THRESHOLD = QC_WORKFLOW_CONFIG["score_threshold"]
+QC_FLAG_ORDER = QC_WORKFLOW_CONFIG["flag_order"]
 
 def get_qc_issue_types():
     return [
