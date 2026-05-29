@@ -13,6 +13,73 @@ from config import (
     QC_WORKFLOW_CONFIG,
 )
 
+def format_workflow_label(label):
+    formatted_label = label.replace(
+        "_",
+        " "
+    ).title()
+
+    formatted_label = formatted_label.replace(
+        "Id",
+        "ID"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Qc",
+        "QC"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Hsil",
+        "HSIL"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Lsil",
+        "LSIL"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Ascus",
+        "ASCUS"
+    )
+
+    return formatted_label
+
+def format_column_label(label):
+    formatted_label = label.replace(
+        "_",
+        " "
+    ).title()
+
+    formatted_label = formatted_label.replace(
+        "Id",
+        "ID"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Qc",
+        "QC"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Hsil",
+        "HSIL"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Lsil",
+        "LSIL"
+    )
+
+    formatted_label = formatted_label.replace(
+        "Ascus",
+        "ASCUS"
+    )
+    
+    return formatted_label
+
+
 def assign_priority(adequacy, scan_status, diagnosis):
     
     if adequacy.lower() in ["unsat", "unsatisfactory"]:

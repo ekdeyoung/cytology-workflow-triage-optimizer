@@ -6,6 +6,8 @@ from triage_utils import(
     get_urgent_cases,
     get_pathologist_review_cases,
     get_imager_qc_review_cases,
+    format_workflow_label,
+    format_column_label
 )
 
 from qc_detector import assign_qc_flag
@@ -88,5 +90,35 @@ elif qc_view == "Imager QC Pass":
         filtered_queue["qc_flag"] == "imager_qc_pass"
     ]
 
+display_queue = filtered_queue.copy()
 
-st.dataframe(filtered_queue)
+display_queue["needs_attention"] = (
+    display_queue["needs_attention"]
+    .apply(format_workflow_label)
+)
+
+display_queue["qc_flag"] = (
+    display_queue["qc_flag"]
+    .apply(format_workflow_label)
+)
+
+display_value_columns = [
+    "adequacy",
+    "scan_status",
+    "diagnosis",
+]
+
+for column in display_value_columns:
+    display_queue[column] = (
+        display_queue[column]
+        .apply(format_workflow_label)
+    )
+
+display_columns = {}
+
+for column in display_queue.columns:
+    display_columns[column] = format_column_label(column)
+
+display_queue = display_queue.rename(columns=display_columns)
+
+st.dataframe(display_queue)
