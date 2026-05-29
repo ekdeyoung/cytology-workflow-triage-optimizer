@@ -24,12 +24,18 @@ PRIORITY_REASON_ORDER = [
 
 # Workflow State Definitions
 
-IMMEDIATE_ATTENTION = "immediate_attention"
-PATHOLOGIST_REVIEW = "pathologist_review"
-ROUTINE = "routine"
+WORKFLOW_STATES = {
+    "immediate_attention": "immediate_attention",
+    "pathologist_review": "pathologist_review",
+    "routine": "routine",
+}
+
+IMMEDIATE_ATTENTION = WORKFLOW_STATES["immediate_attention"]
+PATHOLOGIST_REVIEW = WORKFLOW_STATES["pathologist_review"]
+ROUTINE = WORKFLOW_STATES["routine"]
 
 ATTENTION_STATE_ORDER = [
     IMMEDIATE_ATTENTION,
     PATHOLOGIST_REVIEW,
-    ROUTINE
+    ROUTINE,
 ]
