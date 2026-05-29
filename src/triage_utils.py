@@ -8,6 +8,8 @@ from config import (
     ROUTINE,
     ATTENTION_STATE_ORDER,
     PRIORITY_TO_ATTENTION_STATE,
+    DIAGNOSIS_PRIORITY_MAP,
+    DIAGNOSIS_REASON_MAP,
 )
 
 def assign_priority(adequacy, scan_status, diagnosis):
@@ -17,16 +19,9 @@ def assign_priority(adequacy, scan_status, diagnosis):
     
     elif scan_status.lower() in ["fail", "failed"]:
         return 2
-    
-    diagnosis_map = {
-        "hsil": 3,
-        "lsil": 4,
-        "ascus": 5,
-        "infection": 6,
-        "normal": 7
-    }
 
-    return diagnosis_map.get(diagnosis.lower(), 99)
+    return DIAGNOSIS_PRIORITY_MAP.get(diagnosis.lower(), 99)
+
 
 def assign_priority_reason(adequacy, scan_status, diagnosis):
 
@@ -35,16 +30,12 @@ def assign_priority_reason(adequacy, scan_status, diagnosis):
     
     elif scan_status.lower() in ["fail", "failed"]:
         return "Scan failure"
-    
-    diagnosis_map = {
-        "hsil": "HSIL detected",
-        "lsil": "LSIL detected",
-        "ascus": "ASCUS detected",
-        "infection": "Infection detected",
-        "normal": "Routine normal case"
-    }
 
-    return diagnosis_map.get(diagnosis.lower(), "Unknown finding")
+    return DIAGNOSIS_REASON_MAP.get(
+        diagnosis.lower(), 
+        "Unknown finding"
+    )
+
 
 def assign_attention_flag(priority): 
     return PRIORITY_TO_ATTENTION_STATE.get(priority, ROUTINE)

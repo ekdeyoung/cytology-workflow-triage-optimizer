@@ -18,8 +18,26 @@ PRIORITY_REASON_ORDER = [
     "LSIL detected",
     "ASCUS detected",
     "Infection detected",
-    "Routine normal case"
+    "Routine normal case",
 ]
+
+# Diagnosis Workflow Configuration
+
+DIAGNOSIS_PRIORITY_MAP = {
+    "hsil": 3,
+    "lsil": 4,
+    "ascus": 5,
+    "infection": 6,
+    "normal": 7,
+}
+
+DIAGNOSIS_REASON_MAP = {
+    "hsil": "HSIL detected",
+    "lsil": "LSIL detected",
+    "ascus": "ASCUS detected",
+    "infection": "Infection detected",
+    "normal": "Routine normal case",
+}
 
 
 # Workflow State Definitions
@@ -70,5 +88,5 @@ STATIC_OUTPUT_FILES = [
     PATHOLOGIST_REVIEW_FILE,
     HIGH_PRIORITY_FILE,
     QC_REVIEW_FILE,
-    AI_WORKFLOW_OVERVIEW_FILE
+    AI_WORKFLOW_OVERVIEW_FILE,
 ]
