@@ -4,7 +4,7 @@ WORKFLOW_THRESHOLDS = {
     "turnaround_days": 5,
     "urgent_case_pct": 30,
     "abnormal_case_pct": 40,
-    "scan_failure_pct": 0.20,
+    "imager_scan_failure_pct": 0.20,
     "imager_qc_review_pct": 50,
 }
 
@@ -12,13 +12,13 @@ WORKFLOW_THRESHOLDS = {
 # Workflow Reporting Order
 
 PRIORITY_REASON_ORDER = [
-    "Low cellularity",
-    "Scan failure",
-    "HSIL detected",
-    "LSIL detected",
-    "ASCUS detected",
-    "Infection detected",
-    "Routine normal case",
+    "Low Cellularity",
+    "Imager Scan Failure",
+    "HSIL Detected",
+    "LSIL Detected",
+    "ASCUS Detected",
+    "Infection Detected",
+    "Routine Normal Case",
 ]
 
 # Diagnosis Workflow Configuration
@@ -32,11 +32,11 @@ DIAGNOSIS_PRIORITY_MAP = {
 }
 
 DIAGNOSIS_REASON_MAP = {
-    "hsil": "HSIL detected",
-    "lsil": "LSIL detected",
-    "ascus": "ASCUS detected",
-    "infection": "Infection detected",
-    "normal": "Routine normal case",
+    "hsil": "HSIL Detected",
+    "lsil": "LSIL Detected",
+    "ascus": "ASCUS Detected",
+    "infection": "Infection Detected",
+    "normal": "Routine Normal Case",
 }
 
 
@@ -91,13 +91,13 @@ ML_WORKFLOW_CONFIG = {
         "artifact_risk_score",
         "cellularity_score",
     ],
-    "qc_issue_types": [
+    "imager_qc_issue_types": [
         "blur",
         "air_bubbles",
         "stain_artifact",
         "low_cellularity",
         "coverslip_issue",
-        "scan_failure",
+        "imager_scan_failure",
     ],
     "ml_target_labels": ATTENTION_STATE_ORDER,
     "qc_workflow_states": QC_WORKFLOW_CONFIG["flag_order"],

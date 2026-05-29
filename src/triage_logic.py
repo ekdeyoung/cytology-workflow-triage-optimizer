@@ -50,14 +50,14 @@ INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
 
 cases = pd.read_csv(INPUT_FILE)
-logging.info(f"Loaded input file: {INPUT_FILE}")
+logging.info(f"Loaded Input File: {INPUT_FILE}")
 
 try:
     validate_case_data(cases)
-    logging.info("Case data validation passed")
+    logging.info("Case Data Validation Passed")
 
 except ValueError as error:
-    logging.error(f"Validation failed: {error}")
+    logging.error(f"Validation Failed: {error}")
     raise
 
 triage_queue = create_triage_queue(cases)
@@ -71,9 +71,9 @@ triage_queue["qc_flag"] = triage_queue.apply(
 )
 
 logging.info(
-    f"Processed {len(triage_queue)} cytology cases"
+    f"Processed {len(triage_queue)} Cytology Cases"
 )
-logging.info("Starting cytology workflow analysis")
+logging.info("Starting Cytology Workflow Analysis")
 print("\n=== FULL TRIAGE QUEUE ===")
 print(triage_queue)
 
@@ -124,9 +124,9 @@ imager_qc_review_cases.to_csv(
     index=False
 )
 
-logging.info("Workflow reports exported successfully")
+logging.info("Workflow Reports Exported Successfully")
 
-logging.info(f"Reports exported to: {OUTPUT_DIR}")
+logging.info(f"Reports Exported To: {OUTPUT_DIR}")
 
 generated_files = [
     triage_report_file,
@@ -134,11 +134,11 @@ generated_files = [
 ]
 
 logging.info(
-    f"Generated {len(generated_files)} output files"
+    f"Generated {len(generated_files)} Output Files"
 )
 
 logging.info(
-    f"Generated output files: {generated_files}"
+    f"Generated Output Files: {generated_files}"
 )
 
 
@@ -149,7 +149,7 @@ summary = create_summary_metrics(
 )
 
 logging.info(
-    "Summary metrics | "
+    "Summary Metrics | "
     f"total_cases={summary['total_cases']} | "
     f"urgent_cases={summary['urgent_cases']} | "
     f"pathologist_review_cases={summary['pathologist_review_cases']} | "
@@ -169,24 +169,24 @@ with open(
 
     file.write(f"CYTOLOGY TRIAGE SUMMARY | {today}\n\n")
 
-    file.write(f"Total cases: {summary['total_cases']}\n")
-    file.write(f"Urgent cases: {summary['urgent_cases']}\n")
-    file.write(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}\n")
-    file.write(f"Scan failures: {summary['scan_failures']}\n")
-    file.write(f"Pathologist review cases: {summary['pathologist_review_cases']}\n")
-    file.write(f"Abnormal cases: {summary['abnormal_cases']}\n")
+    file.write(f"Total Cases: {summary['total_cases']}\n")
+    file.write(f"Urgent Cases: {summary['urgent_cases']}\n")
+    file.write(f"Unsatisfactory Cases: {summary['unsatisfactory_cases']}\n")
+    file.write(f"Scan Failures: {summary['imager_scan_failures']}\n")
+    file.write(f"Pathologist Review Cases: {summary['pathologist_review_cases']}\n")
+    file.write(f"Abnormal Cases: {summary['abnormal_cases']}\n")
    
     file.write("\nDAILY PERCENTAGES\n")
     file.write(f"Urgent %: {summary['urgent_pct']:.1f}%\n")
-    file.write(f"Pathologist review %: {summary['review_pct']:.1f}%\n")
+    file.write(f"Pathologist Review %: {summary['review_pct']:.1f}%\n")
     file.write(f"Abnormal %: {summary['abnormal_pct']:.1f}%\n")
     
     file.write("\nTURNAROUND TIME METRICS\n")
 
-    file.write(f"Average turnaround days: {summary['average_turnaround_days']}\n")
-    file.write(f"Longest turnaround days: {summary['longest_turnaround_days']}\n")
+    file.write(f"Average Turnaround Time In Days: {summary['average_turnaround_days']}\n")
+    file.write(f"Longest Turnaround Time In Days: {summary['longest_turnaround_days']}\n")
     file.write(
-        f"Cases over {WORKFLOW_THRESHOLDS['turnaround_days']} days: "
+        f"Cases Over {WORKFLOW_THRESHOLDS['turnaround_days']} Days: "
         f"{summary['cases_over_threshold']}\n"
     )
 
@@ -227,7 +227,7 @@ with open(
     most_common_reason_count = reason_counts.max()
 
     file.write(
-        f"Most common priority reason: {most_common_reason} ({most_common_reason_count} cases)\n"
+        f"Most Common Priority Reason: {most_common_reason} ({most_common_reason_count} Cases)\n"
     )
 
     file.write("\nDAILY BREAKDOWN\n")
@@ -243,20 +243,20 @@ with open(
 
 
 print("\n=== SUMMARY ===")
-print("Urgent cases:", summary["urgent_cases"])
-print("Pathologist review cases:", summary["pathologist_review_cases"])
+print("Urgent Cases:", summary["urgent_cases"])
+print("Pathologist Review Cases:", summary["pathologist_review_cases"])
 
-print(f"Total cases: {summary['total_cases']}")
+print(f"Total Cases: {summary['total_cases']}")
 print(f"Urgent %: {summary['urgent_pct']:.1f}%")
-print(f"Pathologist review %: {summary['review_pct']:.1f}%")
+print(f"Pathologist Review %: {summary['review_pct']:.1f}%")
 
-print(f"Abnormal cases: {summary['abnormal_cases']}")
-print(f"Scan failures: {summary['scan_failures']}")
-print(f"Unsatisfactory cases: {summary['unsatisfactory_cases']}")
-print(f"Average turnaround days: {summary['average_turnaround_days']}")
-print(f"Longest turnaround days: {summary['longest_turnaround_days']}")
+print(f"Abnormal Cases: {summary['abnormal_cases']}")
+print(f"Scan Failures: {summary['imager_scan_failures']}")
+print(f"Unsatisfactory Cases: {summary['unsatisfactory_cases']}")
+print(f"Average Turnaround Time In Days: {summary['average_turnaround_days']}")
+print(f"Longest Turnaround Time In Days: {summary['longest_turnaround_days']}")
 print(
-    f"Cases over {WORKFLOW_THRESHOLDS['turnaround_days']} days: "
+    f"Cases Over {WORKFLOW_THRESHOLDS['turnaround_days']} Days: "
     f"{summary['cases_over_threshold']}"
 )
 print(f"Imager QC Review Cases: {summary['imager_qc_review_cases']}")
@@ -265,35 +265,35 @@ print(f"Imager QC Review %: {summary['imager_qc_review_pct']:.1f}%")
 ai_workflow_components = summarize_ai_workflow_components()
 
 logging.info(
-    f"AI workflow components planned: "
+    f"AI Workflow Components Planned: "
     f"{list(ai_workflow_components.keys())}"
 )
 
 logging.info(
-    f"QC review cases identified: "
+    f"QC Review Cases Identified: "
     f"{summary['imager_qc_review_cases']}"
 )
 
 logging.info(
-    f"QC score threshold used: {QC_SCORE_THRESHOLD}"
+    f"QC Score Threshold Used: {QC_SCORE_THRESHOLD}"
 )
 
 logging.info(
-    f"QC flag reporting order: {QC_FLAG_ORDER}"
+    f"QC Flag Reporting Order: {QC_FLAG_ORDER}"
 )
 
 logging.info(
-    f"Priority reason reporting order: {PRIORITY_REASON_ORDER}"
+    f"Priority Reason Reporting Order: {PRIORITY_REASON_ORDER}"
 )
 
 attention_states = ATTENTION_STATE_ORDER
 
 logging.info(
-    f"Attention workflow states: {attention_states}"
+    f"Attention Workflow States: {attention_states}"
 )
 
 logging.info(
-    "ML target labels aligned with attention workflow states"
+    "ML Target Labels Aligned With Attention Workflow States"
 )
 
 with open(
@@ -310,6 +310,6 @@ with open(
 
         file.write("\n")
 
-logging.info("AI workflow overview exported successfully")
+logging.info("AI Workflow Overview Exported Successfully")
 
-logging.info("Cytology workflow completed successfully")
+logging.info("Cytology Workflow Completed Successfully")

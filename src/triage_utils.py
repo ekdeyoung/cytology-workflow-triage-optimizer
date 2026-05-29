@@ -27,14 +27,14 @@ def assign_priority(adequacy, scan_status, diagnosis):
 def assign_priority_reason(adequacy, scan_status, diagnosis):
 
     if adequacy.lower() in ["unsat", "unsatisfactory"]:
-        return "Low cellularity"
+        return "Low Cellularity"
     
     elif scan_status.lower() in ["fail", "failed"]:
-        return "Scan failure"
+        return "Scan Failure"
 
     return DIAGNOSIS_REASON_MAP.get(
         diagnosis.lower(), 
-        "Unknown finding"
+        "Unknown Finding"
     )
 
 
@@ -79,7 +79,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     total_cases = len(triage_queue)
 
     abnormal_cases = triage_queue[triage_queue["diagnosis"] != "normal"]
-    scan_failures = triage_queue[triage_queue["scan_status"] == "fail"]
+    imager_scan_failures = triage_queue[triage_queue["scan_status"] == "fail"]
     unsat_cases = triage_queue[triage_queue["adequacy"] == "unsat"]
     
     urgent_pct = len(urgent_cases) / total_cases * 100
@@ -99,7 +99,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "review_pct": review_pct,
         "abnormal_pct": abnormal_pct,
         "abnormal_cases": len(abnormal_cases),
-        "scan_failures": len(scan_failures),
+        "imager_scan_failures": len(imager_scan_failures),
         "unsatisfactory_cases": len(unsat_cases),
         "average_turnaround_days": round(
             triage_queue["turnaround_days"].mean(), 1
@@ -119,7 +119,7 @@ def validate_case_data(df):
 
     for column in required_columns:
         if column not in df.columns:
-            raise ValueError(f"Missing required column: {column}")
+            raise ValueError(f"Missing Required Column: {column}")
     
     allowed_adequacy = ["sat", "unsat", "unsatisfactory"]
     allowed_scan_status = ["pass", "fail", "failed"]
@@ -127,15 +127,15 @@ def validate_case_data(df):
 
     for value in df["adequacy"]:
             if value.lower() not in allowed_adequacy:
-                raise ValueError(f"Unexpected adequacy value: {value}")
+                raise ValueError(f"Unexpected Adequacy Value: {value}")
 
     for value in df["scan_status"]:
         if value.lower() not in allowed_scan_status:
-            raise ValueError(f"Unexpected scan_status value: {value}")
+            raise ValueError(f"Unexpected scan_status Value: {value}")
         
     for value in df["diagnosis"]:
         if value.lower() not in allowed_diagnosis:
-            raise ValueError(f"Unexpected diagnosis value: {value}")
+            raise ValueError(f"Unexpected Diagnosis Value: {value}")
         
     return True
 
@@ -154,24 +154,24 @@ def interpret_workload(summary):
 
     if (summary["urgent_pct"] 
         >= WORKFLOW_THRESHOLDS["urgent_case_pct"]):
-        interpretations.append("High urgent workload")
+        interpretations.append("High Urgent Workload")
 
     if (summary["abnormal_pct"] 
         >= WORKFLOW_THRESHOLDS["abnormal_case_pct"]):
-        interpretations.append("Elevated abnormal case rate")
+        interpretations.append("Elevated Abnormal Case Rate")
 
-    if (summary["scan_failures"] / summary["total_cases"] 
-        >= WORKFLOW_THRESHOLDS["scan_failure_pct"]):
-        interpretations.append("Elevated scan failure rate")
+    if (summary["imager_scan_failures"] / summary["total_cases"] 
+        >= WORKFLOW_THRESHOLDS["imager_scan_failure_pct"]):
+        interpretations.append("Elevated Imager Failure Rate")
 
     if summary["cases_over_threshold"] > 0:
-        interpretations.append("Delayed turnaround time cases present")
+        interpretations.append("Delayed Turnaround Time Cases Present")
 
     if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
-        interpretations.append("Elevated QC review burden")
+        interpretations.append("Elevated Imager QC Review Burden")
 
     if not interpretations:
-        interpretations.append("Workflow within expected limits")
+        interpretations.append("Workflow Within Expected Limits")
 
     return interpretations
 
@@ -180,16 +180,16 @@ def create_workflow_alerts(summary):
     alerts = []
 
     if summary["urgent_pct"] >= WORKFLOW_THRESHOLDS["urgent_case_pct"]:
-        alerts.append("High urgent case volume detected")
+        alerts.append("High Urgent Case Volume Detected")
 
-    if (summary["scan_failures"] / summary["total_cases"] 
-        >= WORKFLOW_THRESHOLDS["scan_failure_pct"]):
-        alerts.append("High scan failure rate detected")
+    if (summary["imager_scan_failures"] / summary["total_cases"] 
+        >= WORKFLOW_THRESHOLDS["imager_scan_failure_pct"]):
+        alerts.append("High Scan Failure Rate Detected")
 
     if summary["cases_over_threshold"] > 0:
-        alerts.append("Cases exceeding turnaround threshold detected")
+        alerts.append("Cases Exceeding Turnaround Time Threshold Detected")
 
     if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
-        alerts.append("High QC review volume detected")
+        alerts.append("High Imager QC Review Volume Detected")
 
     return alerts

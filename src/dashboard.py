@@ -42,7 +42,7 @@ col4.metric("Imager QC Review", len(imager_qc_review_cases))
 st.subheader("Workflow Queue")
 
 workflow_view = st.selectbox(
-    "Select workflow view",
+    "Select Workflow View",
     [
         "All Cases",
         "Immediate Attention",
