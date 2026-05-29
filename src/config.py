@@ -83,6 +83,27 @@ QC_WORKFLOW_CONFIG = {
 }
 
 
+# ML Workflow Configuration
+
+ML_WORKFLOW_CONFIG = {
+    "image_features": [
+        "blur_score",
+        "artifact_risk_score",
+        "cellularity_score",
+    ],
+    "qc_issue_types": [
+        "blur",
+        "air_bubbles",
+        "stain_artifact",
+        "low_cellularity",
+        "coverslip_issue",
+        "scan_failure",
+    ],
+    "ml_target_labels": ATTENTION_STATE_ORDER,
+    "qc_workflow_states": QC_WORKFLOW_CONFIG["flag_order"],
+}
+
+
 # Export File Configuration
 
 AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"

@@ -6,6 +6,9 @@ Create charts and visual summaries for cytology workload,
 turnaround time, QC metrics, and triage performance.
 """
 
+from config import ML_WORKFLOW_CONFIG
+from config import QC_WORKFLOW_CONFIG
+
 AI_WORKFLOW_SECTION_ORDER = [
     "image_features",
     "qc_issue_types",
@@ -14,21 +17,15 @@ AI_WORKFLOW_SECTION_ORDER = [
     "qc_score_threshold"
 ]
 
-from image_features import describe_image_feature_plan
-from ml_scoring import get_ml_target_labels
-from qc_detector import (
-    get_qc_issue_types,
-    get_qc_workflow_states,
-    QC_SCORE_THRESHOLD
-)
-
 def summarize_ai_workflow_components():
     workflow_components = {
-        "image_features": describe_image_feature_plan(),
-        "qc_issue_types": get_qc_issue_types(),
-        "ml_target_labels": get_ml_target_labels(),
-        "qc_workflow_states": get_qc_workflow_states(),
-        "qc_score_threshold": [QC_SCORE_THRESHOLD],
+        "image_features": ML_WORKFLOW_CONFIG["image_features"],
+        "qc_issue_types": ML_WORKFLOW_CONFIG["qc_issue_types"],
+        "ml_target_labels": ML_WORKFLOW_CONFIG["ml_target_labels"],
+        "qc_workflow_states": ML_WORKFLOW_CONFIG["qc_workflow_states"],
+        "qc_score_threshold": [
+            QC_WORKFLOW_CONFIG["score_threshold"]
+        ],
     }
 
     ordered_components = {}
