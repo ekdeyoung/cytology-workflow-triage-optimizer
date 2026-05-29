@@ -50,3 +50,25 @@ PRIORITY_TO_ATTENTION_STATE = {
     7: ROUTINE,
     99: ROUTINE,
 }
+
+# Export File Configuration
+
+AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"
+
+SUMMARY_REPORT_FILE = "summary_report.txt"
+
+TRIAGE_REPORT_PREFIX = "triage_report"
+
+URGENT_CASES_FILE = "urgent_cases.csv"
+PATHOLOGIST_REVIEW_FILE = "pathologist_review_cases.csv"
+HIGH_PRIORITY_FILE = "high_priority_cases.csv"
+QC_REVIEW_FILE = "qc_review_cases.csv"
+
+STATIC_OUTPUT_FILES = [
+    SUMMARY_REPORT_FILE,
+    URGENT_CASES_FILE,
+    PATHOLOGIST_REVIEW_FILE,
+    HIGH_PRIORITY_FILE,
+    QC_REVIEW_FILE,
+    AI_WORKFLOW_OVERVIEW_FILE
+]

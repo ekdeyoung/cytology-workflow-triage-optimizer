@@ -26,7 +26,17 @@ from triage_utils import (
     ATTENTION_STATE_ORDER,
 )
 
-from config import WORKFLOW_THRESHOLDS
+from config import (
+    WORKFLOW_THRESHOLDS,
+    AI_WORKFLOW_OVERVIEW_FILE,
+    SUMMARY_REPORT_FILE,
+    TRIAGE_REPORT_PREFIX,
+    URGENT_CASES_FILE,
+    PATHOLOGIST_REVIEW_FILE,
+    HIGH_PRIORITY_FILE,
+    QC_REVIEW_FILE,
+    STATIC_OUTPUT_FILES,
+)
 
 from visualization import summarize_ai_workflow_components
 
@@ -38,27 +48,6 @@ from qc_detector import (
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 OUTPUT_DIR = "results"
-
-AI_WORKFLOW_OVERVIEW_FILE = "ai_workflow_overview.txt"
-
-SUMMARY_REPORT_FILE = "summary_report.txt"
-
-TRIAGE_REPORT_PREFIX = "triage_report"
-
-URGENT_CASES_FILE = "urgent_cases.csv"
-PATHOLOGIST_REVIEW_FILE = "pathologist_review_cases.csv"
-HIGH_PRIORITY_FILE = "high_priority_cases.csv"
-QC_REVIEW_FILE = "qc_review_cases.csv"
-
-STATIC_OUTPUT_FILES = [
-    SUMMARY_REPORT_FILE,
-    URGENT_CASES_FILE,
-    PATHOLOGIST_REVIEW_FILE,
-    HIGH_PRIORITY_FILE,
-    QC_REVIEW_FILE,
-    AI_WORKFLOW_OVERVIEW_FILE
-]
-
 
 cases = pd.read_csv(INPUT_FILE)
 logging.info(f"Loaded input file: {INPUT_FILE}")
