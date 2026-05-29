@@ -16,7 +16,7 @@ from triage_utils import (
     validate_case_data,
     get_urgent_cases,
     get_pathologist_review_cases,
-    get_qc_review_cases,
+    get_imager_qc_review_cases,
     interpret_workload,
     create_workflow_alerts,
     PRIORITY_REASON_ORDER,
@@ -34,7 +34,7 @@ from config import (
     URGENT_CASES_FILE,
     PATHOLOGIST_REVIEW_FILE,
     HIGH_PRIORITY_FILE,
-    QC_REVIEW_FILE,
+    IMAGER_QC_REVIEW_FILE,
     STATIC_OUTPUT_FILES,
 )
 
@@ -88,7 +88,7 @@ high_priority_cases = triage_queue[
     triage_queue["priority"] <= 5
 ]
 
-qc_review_cases = get_qc_review_cases(triage_queue)
+imager_qc_review_cases = get_imager_qc_review_cases(triage_queue)
 
 print("\n=== PATHOLOGIST REVIEW CASES ===")
 print(pathologist_cases)
@@ -119,8 +119,8 @@ high_priority_cases.to_csv(
     index=False
 )
 
-qc_review_cases.to_csv(
-    f"{OUTPUT_DIR}/{QC_REVIEW_FILE}",
+imager_qc_review_cases.to_csv(
+    f"{OUTPUT_DIR}/{IMAGER_QC_REVIEW_FILE}",
     index=False
 )
 
@@ -153,7 +153,7 @@ logging.info(
     f"total_cases={summary['total_cases']} | "
     f"urgent_cases={summary['urgent_cases']} | "
     f"pathologist_review_cases={summary['pathologist_review_cases']} | "
-    f"qc_review_cases={summary['qc_review_cases']}"
+    f"imager_qc_review_cases={summary['imager_qc_review_cases']}"
 )
 
 workload_interpretations = interpret_workload(summary)
@@ -190,12 +190,12 @@ with open(
         f"{summary['cases_over_threshold']}\n"
     )
 
-    file.write("\nQC METRICS\n")
+    file.write("\nIMAGER QC METRICS\n")
     file.write(
-        f"QC review cases: "
-        f"{summary['qc_review_cases']}\n"
+        f"Imager QC Review Cases: "
+        f"{summary['imager_qc_review_cases']}\n"
     )
-    file.write(f"QC review %: {summary['qc_review_pct']:.1f}%\n")
+    file.write(f"Imager QC Review %: {summary['imager_qc_review_pct']:.1f}%\n")
     
     file.write("\nQC FLAG BREAKDOWN\n")
 
@@ -259,8 +259,8 @@ print(
     f"Cases over {WORKFLOW_THRESHOLDS['turnaround_days']} days: "
     f"{summary['cases_over_threshold']}"
 )
-print(f"QC review cases: {summary['qc_review_cases']}")
-print(f"QC review %: {summary['qc_review_pct']:.1f}%")
+print(f"Imager QC Review Cases: {summary['imager_qc_review_cases']}")
+print(f"Imager QC Review %: {summary['imager_qc_review_pct']:.1f}%")
 
 ai_workflow_components = summarize_ai_workflow_components()
 
@@ -271,7 +271,7 @@ logging.info(
 
 logging.info(
     f"QC review cases identified: "
-    f"{summary['qc_review_cases']}"
+    f"{summary['imager_qc_review_cases']}"
 )
 
 logging.info(

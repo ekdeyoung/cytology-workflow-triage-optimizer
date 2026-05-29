@@ -5,7 +5,7 @@ WORKFLOW_THRESHOLDS = {
     "urgent_case_pct": 30,
     "abnormal_case_pct": 40,
     "scan_failure_pct": 0.20,
-    "qc_review_pct": 50,
+    "imager_qc_review_pct": 50,
 }
 
 
@@ -74,11 +74,11 @@ PRIORITY_TO_ATTENTION_STATE = {
 
 QC_WORKFLOW_CONFIG = {
     "score_threshold": 0.7,
-    "review_state": "qc_review",
-    "pass_state": "qc_pass",
+    "review_state": "imager_qc_review",
+    "pass_state": "imager_qc_pass",
     "flag_order": [
-        "qc_review",
-        "qc_pass",
+        "imager_qc_review",
+        "imager_qc_pass",
     ],
 }
 
@@ -115,13 +115,13 @@ TRIAGE_REPORT_PREFIX = "triage_report"
 URGENT_CASES_FILE = "urgent_cases.csv"
 PATHOLOGIST_REVIEW_FILE = "pathologist_review_cases.csv"
 HIGH_PRIORITY_FILE = "high_priority_cases.csv"
-QC_REVIEW_FILE = "qc_review_cases.csv"
+IMAGER_QC_REVIEW_FILE = "imager_qc_review_cases.csv"
 
 STATIC_OUTPUT_FILES = [
     SUMMARY_REPORT_FILE,
     URGENT_CASES_FILE,
     PATHOLOGIST_REVIEW_FILE,
     HIGH_PRIORITY_FILE,
-    QC_REVIEW_FILE,
+    IMAGER_QC_REVIEW_FILE,
     AI_WORKFLOW_OVERVIEW_FILE,
 ]

@@ -10,6 +10,7 @@ from config import (
     PRIORITY_TO_ATTENTION_STATE,
     DIAGNOSIS_PRIORITY_MAP,
     DIAGNOSIS_REASON_MAP,
+    QC_WORKFLOW_CONFIG,
 )
 
 def assign_priority(adequacy, scan_status, diagnosis):
@@ -85,10 +86,10 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     review_pct = len(pathologist_cases) / total_cases * 100
     abnormal_pct = len(abnormal_cases) / total_cases * 100
 
-    qc_review_cases = triage_queue[
-        triage_queue["qc_flag"] == "qc_review"
+    imager_qc_review_cases = triage_queue[
+        triage_queue["qc_flag"] == QC_WORKFLOW_CONFIG["review_state"]
     ]
-    qc_review_pct = len(qc_review_cases) / total_cases * 100
+    imager_qc_review_pct = len(imager_qc_review_cases) / total_cases * 100
 
     return {
         "total_cases": total_cases,
@@ -109,8 +110,8 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         "cases_over_threshold": (
             triage_queue["turnaround_days"] > WORKFLOW_THRESHOLDS["turnaround_days"]
         ).sum(), 
-        "qc_review_cases": len(qc_review_cases),
-        "qc_review_pct": qc_review_pct,
+        "imager_qc_review_cases": len(imager_qc_review_cases),
+        "imager_qc_review_pct": imager_qc_review_pct,
     }
 
 def validate_case_data(df):
@@ -144,8 +145,8 @@ def get_urgent_cases(df):
 def get_pathologist_review_cases(df):
     return df[df["needs_attention"] == PATHOLOGIST_REVIEW]
 
-def get_qc_review_cases(df):
-    return df[df["qc_flag"] == "qc_review"]
+def get_imager_qc_review_cases(df):
+    return df[df["qc_flag"] == QC_WORKFLOW_CONFIG["review_state"]]
 
 def interpret_workload(summary):
 
@@ -166,7 +167,7 @@ def interpret_workload(summary):
     if summary["cases_over_threshold"] > 0:
         interpretations.append("Delayed turnaround time cases present")
 
-    if summary["qc_review_pct"] >= WORKFLOW_THRESHOLDS["qc_review_pct"]:
+    if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
         interpretations.append("Elevated QC review burden")
 
     if not interpretations:
@@ -188,7 +189,7 @@ def create_workflow_alerts(summary):
     if summary["cases_over_threshold"] > 0:
         alerts.append("Cases exceeding turnaround threshold detected")
 
-    if summary["qc_review_pct"] >= WORKFLOW_THRESHOLDS["qc_review_pct"]:
+    if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
         alerts.append("High QC review volume detected")
 
     return alerts
