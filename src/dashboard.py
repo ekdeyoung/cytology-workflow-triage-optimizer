@@ -61,6 +61,16 @@ diagnosis_distribution = (
 
 st.bar_chart(diagnosis_distribution)
 
+st.subheader("Imager QC Distribution")
+
+qc_distribution = (
+    triage_queue["qc_flag"]
+    .apply(format_workflow_label)
+    .value_counts()
+)
+
+st.bar_chart(qc_distribution)
+
 st.subheader("Workflow Queue")
 
 workflow_view = st.selectbox(
