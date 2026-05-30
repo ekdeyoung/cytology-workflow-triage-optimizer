@@ -185,4 +185,8 @@ for column in display_queue.columns:
 
 display_queue = display_queue.rename(columns=display_columns)
 
+st.caption(
+    f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
+)
+
 st.dataframe(display_queue)
