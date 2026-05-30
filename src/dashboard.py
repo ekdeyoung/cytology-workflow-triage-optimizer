@@ -51,6 +51,16 @@ workflow_distribution = (
 
 st.bar_chart(workflow_distribution)
 
+st.subheader("Diagnosis Distribution")
+
+diagnosis_distribution = (
+    triage_queue["diagnosis"]
+    .apply(format_workflow_label)
+    .value_counts()
+)
+
+st.bar_chart(diagnosis_distribution)
+
 st.subheader("Workflow Queue")
 
 workflow_view = st.selectbox(
