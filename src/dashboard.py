@@ -41,6 +41,16 @@ col2.metric("Urgent Cases", len(urgent_cases))
 col3.metric("Pathologist Review", len(pathologist_cases))
 col4.metric("Imager QC Review", len(imager_qc_review_cases))
 
+st.subheader("Workflow Distribution")
+
+workflow_distribution = (
+    triage_queue["needs_attention"]
+    .apply(format_workflow_label)
+    .value_counts()
+)
+
+st.bar_chart(workflow_distribution)
+
 st.subheader("Workflow Queue")
 
 workflow_view = st.selectbox(
