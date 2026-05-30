@@ -10,6 +10,7 @@ from triage_utils import(
     format_column_label,
     create_summary_metrics,
     create_workflow_alerts,
+    interpret_workload,
 )
 
 from qc_detector import assign_qc_flag
@@ -42,6 +43,8 @@ summary = create_summary_metrics(
 
 workflow_alerts = create_workflow_alerts(summary)
 
+workload_interpretations = interpret_workload(summary)
+
 st.subheader("Daily Workflow Metrics")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -56,6 +59,11 @@ st.subheader("Operational Alerts")
 if workflow_alerts:
     for alert in workflow_alerts:
         st.warning(alert)
+
+st.subheader("Workload Interpretation")
+
+for interpretation in workload_interpretations:
+    st.info(interpretation)
 
 st.subheader("Workflow Distribution")
 
