@@ -71,6 +71,16 @@ qc_distribution = (
 
 st.bar_chart(qc_distribution)
 
+st.subheader("Turnaround Time Distribution")
+
+turnaround_distribution = (
+    triage_queue["turnaround_days"]
+    .value_counts()
+    .sort_index()
+)
+
+st.bar_chart(turnaround_distribution)
+
 st.subheader("Workflow Queue")
 
 workflow_view = st.selectbox(
