@@ -189,4 +189,8 @@ st.caption(
     f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
 )
 
+display_queue = display_queue.sort_values(
+    by="Priority"
+)
+
 st.dataframe(display_queue)
