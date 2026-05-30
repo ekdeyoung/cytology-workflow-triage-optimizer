@@ -7,7 +7,9 @@ from triage_utils import(
     get_pathologist_review_cases,
     get_imager_qc_review_cases,
     format_workflow_label,
-    format_column_label
+    format_column_label,
+    create_summary_metrics,
+    create_workflow_alerts,
 )
 
 from qc_detector import assign_qc_flag
@@ -32,6 +34,14 @@ urgent_cases = get_urgent_cases(triage_queue)
 pathologist_cases = get_pathologist_review_cases(triage_queue)
 imager_qc_review_cases = get_imager_qc_review_cases(triage_queue)
 
+summary = create_summary_metrics(
+    triage_queue,
+    urgent_cases,
+    pathologist_cases,
+)
+
+workflow_alerts = create_workflow_alerts(summary)
+
 st.subheader("Daily Workflow Metrics")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -40,6 +50,12 @@ col1.metric("Total Cases", len(triage_queue))
 col2.metric("Urgent Cases", len(urgent_cases))
 col3.metric("Pathologist Review", len(pathologist_cases))
 col4.metric("Imager QC Review", len(imager_qc_review_cases))
+
+st.subheader("Operational Alerts")
+
+if workflow_alerts:
+    for alert in workflow_alerts:
+        st.warning(alert)
 
 st.subheader("Workflow Distribution")
 
