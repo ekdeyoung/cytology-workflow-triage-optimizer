@@ -45,6 +45,12 @@ workflow_alerts = create_workflow_alerts(summary)
 
 workload_interpretations = interpret_workload(summary)
 
+display_value_columns = [
+    "adequacy",
+    "scan_status",
+    "diagnosis",
+]
+
 st.subheader("Daily Workflow Metrics")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -104,6 +110,48 @@ turnaround_distribution = (
 )
 
 st.bar_chart(turnaround_distribution)
+
+st.subheader("High Priority Cases")
+
+high_priority_cases = triage_queue[
+    triage_queue["priority"] <= 5
+]
+
+high_priority_display = high_priority_cases.copy()
+
+high_priority_display["needs_attention"] = (
+    high_priority_display["needs_attention"]
+    .apply(format_workflow_label)
+)
+
+high_priority_display["qc_flag"] = (
+    high_priority_display["qc_flag"]
+    .apply(format_workflow_label)
+)
+
+for column in display_value_columns:
+    high_priority_display[column] = (
+        high_priority_display[column]
+        .apply(format_workflow_label)
+    )
+
+high_priority_columns = {}
+
+for column in high_priority_display.columns:
+    high_priority_columns[column] = format_column_label(column)
+
+high_priority_display = high_priority_display.rename(
+    columns=high_priority_columns
+)
+
+high_priority_display = high_priority_display.sort_values(
+    by="Priority"
+)
+
+st.caption(
+    f"Showing {len(high_priority_display)} High Priority Cases"
+)
+st.dataframe(high_priority_display)
 
 st.subheader("Workflow Queue")
 
@@ -165,12 +213,6 @@ display_queue["qc_flag"] = (
     display_queue["qc_flag"]
     .apply(format_workflow_label)
 )
-
-display_value_columns = [
-    "adequacy",
-    "scan_status",
-    "diagnosis",
-]
 
 for column in display_value_columns:
     display_queue[column] = (
