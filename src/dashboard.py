@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 from triage_utils import(
     create_triage_queue,
@@ -18,6 +19,10 @@ from qc_detector import assign_qc_flag
 INPUT_FILE = "data/raw/cytology_cases.csv"
 
 st.title("Cytology Workflow Dashboard")
+
+st.caption(
+    f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+)
 
 cases = pd.read_csv(INPUT_FILE)
 
