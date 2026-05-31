@@ -87,45 +87,27 @@ with st.sidebar:
     for interpretation in workload_interpretations:
         st.write(f"- {interpretation}")
 
-st.subheader("Workflow Distribution")
+    st.divider()
+    st.subheader("Workflow Filters")
 
-workflow_distribution = (
-    triage_queue["needs_attention"]
-    .apply(format_workflow_label)
-    .value_counts()
-)
+    workflow_view = st.selectbox(
+        "Select Workflow View",
+        [
+            "All Cases",
+            "Immediate Attention",
+            "Pathologist Review",
+            "Routine",
+        ]
+        )
 
-st.bar_chart(workflow_distribution)
-
-st.subheader("Diagnosis Distribution")
-
-diagnosis_distribution = (
-    triage_queue["diagnosis"]
-    .apply(format_workflow_label)
-    .value_counts()
-)
-
-st.bar_chart(diagnosis_distribution)
-
-st.subheader("Imager QC Distribution")
-
-qc_distribution = (
-    triage_queue["qc_flag"]
-    .apply(format_workflow_label)
-    .value_counts()
-)
-
-st.bar_chart(qc_distribution)
-
-st.subheader("Turnaround Time Distribution")
-
-turnaround_distribution = (
-    triage_queue["turnaround_days"]
-    .value_counts()
-    .sort_index()
-)
-
-st.bar_chart(turnaround_distribution)
+    qc_view = st.selectbox(
+        "Select Imager QC View",
+        [
+            "All Imager QC States",
+            "Imager QC Review",
+            "Imager QC Pass"
+        ]
+    )
 
 st.subheader("High Priority Cases")
 
@@ -169,26 +151,43 @@ st.caption(
 )
 st.dataframe(high_priority_display)
 
+with st.expander("Workflow Distribution", expanded=False):
+    workflow_distribution = (
+        triage_queue["needs_attention"]
+        .apply(format_workflow_label)
+        .value_counts()
+    )
+
+    st.bar_chart(workflow_distribution)
+
+with st.expander("Diagnosis Distribution", expanded=False):
+    diagnosis_distribution = (
+        triage_queue["diagnosis"]
+        .apply(format_workflow_label)
+        .value_counts()
+    )
+
+    st.bar_chart(diagnosis_distribution)
+
+with st.expander("Imager QC Distribution", expanded=False):
+    qc_distribution = (
+        triage_queue["qc_flag"]
+        .apply(format_workflow_label)
+        .value_counts()
+    )
+
+    st.bar_chart(qc_distribution)
+
+with st.expander("Turnaround Time Distribution", expanded=False):
+    turnaround_distribution = (
+        triage_queue["turnaround_days"]
+        .value_counts()
+        .sort_index()
+    )
+
+    st.bar_chart(turnaround_distribution)
+
 st.subheader("Workflow Queue")
-
-workflow_view = st.selectbox(
-    "Select Workflow View",
-    [
-        "All Cases",
-        "Immediate Attention",
-        "Pathologist Review",
-        "Routine",
-    ]
-)
-
-qc_view = st.selectbox(
-    "Select Imager QC View",
-    [
-        "All Imager QC States",
-        "Imager QC Review",
-        "Imager QC Pass"
-    ]
-)
 
 if workflow_view == "Immediate Attention":
     filtered_queue = triage_queue[
