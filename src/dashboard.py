@@ -227,6 +227,19 @@ for column in display_queue.columns:
 
 display_queue = display_queue.rename(columns=display_columns)
 
+case_search = st.text_input(
+    "Search Case ID"
+)
+
+if case_search:
+    display_queue = display_queue[
+        display_queue["Case ID"]
+        .str.contains(
+            case_search,
+            case=False
+        )
+    ]
+    
 st.caption(
     f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
 )
