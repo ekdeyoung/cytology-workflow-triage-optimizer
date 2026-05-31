@@ -45,6 +45,18 @@ workflow_alerts = create_workflow_alerts(summary)
 
 workload_interpretations = interpret_workload(summary)
 
+with st.sidebar:
+    st.header("Workflow Summary")
+
+    st.write(f"Total Cases: {len(triage_queue)}")
+    st.write(f"Urgent Cases: {len(urgent_cases)}")
+    st.write(f"Pathologist Review: {len(pathologist_cases)}")
+    st.write(f"Imager QC Review: {len(imager_qc_review_cases)}")
+
+    st.divider()
+
+    st.write("Current Workflow Status")
+
 display_value_columns = [
     "adequacy",
     "scan_status",
@@ -70,6 +82,10 @@ st.subheader("Workload Interpretation")
 
 for interpretation in workload_interpretations:
     st.info(interpretation)
+
+with st.sidebar:
+    for interpretation in workload_interpretations:
+        st.write(f"- {interpretation}")
 
 st.subheader("Workflow Distribution")
 
@@ -239,7 +255,7 @@ if case_search:
             case=False
         )
     ]
-    
+
 st.caption(
     f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
 )
