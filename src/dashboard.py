@@ -57,6 +57,7 @@ with st.sidebar:
     st.write(f"Urgent Cases: {len(urgent_cases)}")
     st.write(f"Pathologist Review: {len(pathologist_cases)}")
     st.write(f"Imager QC Review: {len(imager_qc_review_cases)}")
+    st.write(f"Overdue Cases: {summary['overdue_cases']}")
 
     st.divider()
 
@@ -70,12 +71,13 @@ display_value_columns = [
 
 st.subheader("Daily Workflow Metrics")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 col1.metric("Total Cases", len(triage_queue))
 col2.metric("Urgent Cases", len(urgent_cases))
 col3.metric("Pathologist Review", len(pathologist_cases))
 col4.metric("Imager QC Review", len(imager_qc_review_cases))
+col5.metric("Overdue Cases", summary["overdue_cases"])
 
 st.subheader("Operational Alerts")
 
@@ -102,6 +104,7 @@ with st.sidebar:
             "Immediate Attention",
             "Pathologist Review",
             "Routine",
+            "Overdue Cases",
         ]
         )
 
@@ -211,6 +214,15 @@ with st.expander("Turnaround Time Distribution", expanded=False):
 
     st.bar_chart(turnaround_distribution)
 
+with st.expander("Case Aging Distribution", expanded=False):
+    case_age_distribution = (
+        triage_queue["case_age_flag"]
+        .apply(format_workflow_label)
+        .value_counts()
+    )
+
+    st.bar_chart(case_age_distribution)
+
 st.subheader("Workflow Queue")
 
 if workflow_view == "Immediate Attention":
@@ -226,6 +238,11 @@ elif workflow_view == "Pathologist Review":
 elif workflow_view == "Routine":
     filtered_queue = triage_queue[
         triage_queue["needs_attention"] == "routine"
+    ]
+
+elif workflow_view == "Overdue Cases":
+    filtered_queue = triage_queue[
+        triage_queue["case_age_flag"] == "overdue"
     ]
 
 else:

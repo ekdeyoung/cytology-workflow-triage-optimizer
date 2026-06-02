@@ -108,6 +108,13 @@ def assign_priority_reason(adequacy, scan_status, diagnosis):
 def assign_attention_flag(priority): 
     return PRIORITY_TO_ATTENTION_STATE.get(priority, ROUTINE)
     
+def assign_case_age_flag(turnaround_days):
+    if turnaround_days > 7:
+        return "overdue"
+    elif turnaround_days > 5:
+        return "aging"
+    else:
+        return "on_track"
 
 def create_triage_queue(df):
     df["received_date"] = pd.to_datetime(df["received_date"])
@@ -116,6 +123,8 @@ def create_triage_queue(df):
     df["turnaround_days"] = (
         df["reported_date"] - df["received_date"]
     ).dt.days
+
+    df["case_age_flag"] = df["turnaround_days"].apply(assign_case_age_flag)
 
     df["priority"] = df.apply(
         lambda row: assign_priority(
@@ -149,6 +158,9 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     imager_scan_failures = triage_queue[triage_queue["scan_status"] == "fail"]
     unsat_cases = triage_queue[triage_queue["adequacy"] == "unsat"]
     
+    overdue_cases = triage_queue[triage_queue["case_age_flag"] == "overdue"]
+    aging_cases = triage_queue[triage_queue["case_age_flag"] == "aging"]
+
     urgent_pct = len(urgent_cases) / total_cases * 100
     review_pct = len(pathologist_cases) / total_cases * 100
     abnormal_pct = len(abnormal_cases) / total_cases * 100
@@ -179,6 +191,8 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
         ).sum(), 
         "imager_qc_review_cases": len(imager_qc_review_cases),
         "imager_qc_review_pct": imager_qc_review_pct,
+        "overdue_cases": len(overdue_cases),
+        "aging_cases": len(aging_cases),
     }
 
 def validate_case_data(df):
@@ -236,6 +250,12 @@ def interpret_workload(summary):
 
     if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
         interpretations.append("Elevated Imager QC Review Burden")
+    
+    if summary["overdue_cases"] > 0:
+        interpretations.append("Overdue Case Backlog Present")
+
+    if summary["aging_cases"] > 0:
+        interpretations.append("Cases Approaching Delay Threshold")
 
     if not interpretations:
         interpretations.append("Workflow Within Expected Limits")
@@ -258,5 +278,11 @@ def create_workflow_alerts(summary):
 
     if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
         alerts.append("High Imager QC Review Volume Detected")
+
+    if summary["overdue_cases"] > 0:
+        alerts.append("Overdue Cases Require Review")
+
+    if summary["aging_cases"] > 0:
+        alerts.append("Cases Approaching Turnaround Threshold")
 
     return alerts
