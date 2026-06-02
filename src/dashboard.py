@@ -114,6 +114,18 @@ with st.sidebar:
         ]
     )
 
+def highlight_priority(row):
+    if row["Needs Attention"] == "Immediate Attention":
+        return ["background-color: #ffe6e6"] * len(row)
+
+    if row["Diagnosis"] == "HSIL":
+        return ["background-color: #fff4cc"] * len(row)
+
+    if row["Turnaround Days"] > 5:
+        return ["background-color: #e6f0ff"] * len(row)
+
+    return [""] * len(row)
+
 st.subheader("High Priority Cases")
 
 high_priority_cases = triage_queue[
@@ -154,7 +166,14 @@ high_priority_display = high_priority_display.sort_values(
 st.caption(
     f"Showing {len(high_priority_display)} High Priority Cases"
 )
-st.dataframe(high_priority_display)
+
+styled_high_priority_display = high_priority_display.style.apply(
+    highlight_priority,
+    axis=1
+)
+
+st.dataframe(styled_high_priority_display)
+
 
 with st.expander("Workflow Distribution", expanded=False):
     workflow_distribution = (
@@ -268,4 +287,9 @@ display_queue = display_queue.sort_values(
     by="Priority"
 )
 
-st.dataframe(display_queue)
+styled_display_queue = display_queue.style.apply(
+    highlight_priority,
+    axis=1
+)
+
+st.dataframe(styled_display_queue)
