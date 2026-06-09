@@ -428,11 +428,15 @@ with queue_tab:
             )
         ]
 
+    if display_queue.empty:
+        st.warning("No Cases Match the Current Filters.")
+        st.stop()
+
     selected_case = st.selectbox(
         "Select Case",
         display_queue["Case ID"]
     )
-    
+
     st.caption(
         f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
     )
@@ -461,6 +465,10 @@ with queue_tab:
         display_queue["Case ID"] == selected_case
     ]
 
-    st.dataframe(case_detail)
+    st.dataframe(
+        case_detail.T.rename(
+            columns={case_detail.index[0]: "Case Details"}
+        )
+    )
 
     st.dataframe(styled_display_queue)
