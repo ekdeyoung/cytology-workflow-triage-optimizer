@@ -309,6 +309,35 @@ with turnaround_tab:
 with trend_tab:
     st.subheader("Historical Trend Analytics")
 
+    latest_day = trend_data.iloc[-1]
+    previous_day = trend_data.iloc[-2]
+
+    trend_col1, trend_col2, trend_col3, trend_col4 = st.columns(4)
+
+    trend_col1.metric(
+        "Total Cases",
+        latest_day["total_cases"],
+        latest_day["total_cases"] - previous_day["total_cases"]
+    )
+
+    trend_col2.metric(
+        "Urgent Cases",
+        latest_day["urgent_cases"],
+        latest_day["urgent_cases"] - previous_day["urgent_cases"]
+    )
+
+    trend_col3.metric(
+        "QC Review Cases",
+        latest_day["qc_review_cases"],
+        latest_day["qc_review_cases"] - previous_day["qc_review_cases"]
+    )
+
+    trend_col4.metric(
+        "Overdue Cases",
+        latest_day["overdue_cases"],
+        latest_day["overdue_cases"] - previous_day["overdue_cases"]
+    )
+
     st.write("Daily Total Case Volume")
 
     st.line_chart(
@@ -465,10 +494,13 @@ with queue_tab:
         display_queue["Case ID"] == selected_case
     ]
 
-    st.dataframe(
-        case_detail.T.rename(
-            columns={case_detail.index[0]: "Case Details"}
-        )
+    case_detail_display = (
+        case_detail
+        .astype(str)
+        .T
+        .rename(columns={case_detail.index[0]: "Case Details"})
     )
+
+    st.dataframe(case_detail_display)
 
     st.dataframe(styled_display_queue)
