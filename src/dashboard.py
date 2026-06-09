@@ -428,6 +428,11 @@ with queue_tab:
             )
         ]
 
+    selected_case = st.selectbox(
+        "Select Case",
+        display_queue["Case ID"]
+    )
+    
     st.caption(
         f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
     )
@@ -449,5 +454,13 @@ with queue_tab:
         file_name=f"{workflow_view.lower().replace(' ', '_')}_workflow_queue.csv",
         mime="text/csv",
     )
+
+    st.subheader("Case Detail View")
+
+    case_detail = display_queue[
+        display_queue["Case ID"] == selected_case
+    ]
+
+    st.dataframe(case_detail)
 
     st.dataframe(styled_display_queue)
