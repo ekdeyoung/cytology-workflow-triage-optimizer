@@ -18,6 +18,7 @@ from triage_utils import(
 from qc_detector import assign_qc_flag
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
+TREND_FILE = "data/raw/cytology_daily_metrics.csv"
 
 st.title("Cytology Workflow Dashboard")
 
@@ -37,11 +38,21 @@ else:
     st.sidebar.info("Using Default Sample Dataset")
     cases = pd.read_csv(INPUT_FILE)
 
+trend_data = pd.read_csv(TREND_FILE)
+trend_data["date"] = pd.to_datetime(trend_data["date"])
+
 try:
     validate_case_data(cases)
 except ValueError as error:
     st.error(error)
     st.stop()
+
+with st.sidebar.expander("Dataset Preview", expanded=False):
+    st.write(f"Rows: {len(cases)}")
+    st.write(f"Columns: {len(cases.columns)}")
+    st.dataframe(cases.head())
+
+st.sidebar.success("Dataset Validation Passed")
 
 triage_queue = create_triage_queue(cases)
 
@@ -86,12 +97,13 @@ display_value_columns = [
     "diagnosis",
 ]
 
-overview_tab, queue_tab, qc_tab, turnaround_tab = st.tabs(
+overview_tab, queue_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
     [
         "Overview",
         "Operational Queue",
         "QC Analytics",
         "Turnaround Analytics",
+        "Trend Analytics",
     ]
 )
 
@@ -294,8 +306,30 @@ with turnaround_tab:
 
     st.bar_chart(case_age_distribution)
 
-with queue_tab:
+with trend_tab:
+    st.subheader("Historical Trend Analytics")
 
+    st.write("Daily Total Case Volume")
+
+    st.line_chart(
+        trend_data,
+        x="date",
+        y="total_cases"
+    )
+
+    st.write("Key Operational Trends")
+
+    st.line_chart(
+        trend_data,
+        x="date",
+        y=[
+            "urgent_cases",
+            "qc_review_cases",
+            "overdue_cases",
+        ]
+    )
+
+with queue_tab:
     st.subheader("Workflow Queue")
 
     if workflow_view == "Immediate Attention":
@@ -405,6 +439,15 @@ with queue_tab:
     styled_display_queue = display_queue.style.apply(
         highlight_priority,
         axis=1
+    )
+
+    csv_export = display_queue.to_csv(index=False)
+
+    st.download_button(
+        label="Export Filtered Queue",
+        data=csv_export,
+        file_name=f"{workflow_view.lower().replace(' ', '_')}_workflow_queue.csv",
+        mime="text/csv",
     )
 
     st.dataframe(styled_display_queue)

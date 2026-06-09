@@ -1,0 +1,6 @@
+date,total_cases,urgent_cases,pathologist_review_cases,qc_review_cases,overdue_cases
+2026-06-01,10,3,4,6,2
+2026-06-02,12,2,5,5,1
+2026-06-03,11,4,4,7,3
+2026-06-04,9,2,3,4,1
+2026-06-05,14,5,6,8,4
