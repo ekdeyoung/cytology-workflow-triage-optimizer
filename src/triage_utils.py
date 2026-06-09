@@ -196,7 +196,16 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     }
 
 def validate_case_data(df):
-    required_columns = ["case_id", "adequacy", "scan_status", "diagnosis"]
+    required_columns = [
+        "case_id",
+        "adequacy",
+        "scan_status",
+        "diagnosis",
+        "received_date",
+        "reported_date",
+        "blur_score",
+        "artifact_risk_score",
+    ]
 
     for column in required_columns:
         if column not in df.columns:

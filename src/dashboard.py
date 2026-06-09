@@ -12,6 +12,7 @@ from triage_utils import(
     create_summary_metrics,
     create_workflow_alerts,
     interpret_workload,
+    validate_case_data,
 )
 
 from qc_detector import assign_qc_flag
@@ -24,7 +25,23 @@ st.caption(
     f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 )
 
-cases = pd.read_csv(INPUT_FILE)
+uploaded_file = st.sidebar.file_uploader(
+    "Upload Cytology Case CSV",
+    type=["csv"]
+)
+
+if uploaded_file is not None:
+    st.sidebar.success("Uploaded CSV Loaded")
+    cases = pd.read_csv(uploaded_file)
+else:
+    st.sidebar.info("Using Default Sample Dataset")
+    cases = pd.read_csv(INPUT_FILE)
+
+try:
+    validate_case_data(cases)
+except ValueError as error:
+    st.error(error)
+    st.stop()
 
 triage_queue = create_triage_queue(cases)
 
