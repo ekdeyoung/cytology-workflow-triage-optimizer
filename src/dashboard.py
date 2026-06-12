@@ -309,8 +309,30 @@ with turnaround_tab:
 with trend_tab:
     st.subheader("Historical Trend Analytics")
 
-    latest_day = trend_data.iloc[-1]
-    previous_day = trend_data.iloc[-2]
+    trend_range = st.selectbox(
+        "Select Trend Range",
+        [
+            "All Time",
+            "Last 7 Days",
+            "Last 30 Days",
+        ]
+    )
+
+    if trend_range == "Last 7 Days":
+        filtered_trend_data = trend_data[
+            trend_data["date"] >= trend_data["date"].max() - pd.Timedelta(days=7)
+        ]
+
+    elif trend_range == "Last 30 Days":
+        filtered_trend_data = trend_data[
+            trend_data["date"] >= trend_data["date"].max() - pd.Timedelta(days=30)
+        ]
+
+    else:
+        filtered_trend_data = trend_data
+
+    latest_day = filtered_trend_data.iloc[-1]
+    previous_day = filtered_trend_data.iloc[-2]
 
     trend_col1, trend_col2, trend_col3, trend_col4 = st.columns(4)
 
@@ -341,7 +363,7 @@ with trend_tab:
     st.write("Daily Total Case Volume")
 
     st.line_chart(
-        trend_data,
+        filtered_trend_data,
         x="date",
         y="total_cases"
     )
@@ -349,7 +371,7 @@ with trend_tab:
     st.write("Key Operational Trends")
 
     st.line_chart(
-        trend_data,
+        filtered_trend_data,
         x="date",
         y=[
             "urgent_cases",
@@ -360,6 +382,11 @@ with trend_tab:
 
 with queue_tab:
     st.subheader("Workflow Queue")
+
+    rows_per_page = st.selectbox(
+        "Rows Per Page",
+        [10, 25, 50, 100]
+    )
 
     if workflow_view == "Immediate Attention":
         filtered_queue = triage_queue[
@@ -474,7 +501,9 @@ with queue_tab:
         by="Priority"
     )
 
-    styled_display_queue = display_queue.style.apply(
+    paged_display_queue = display_queue.head(rows_per_page)
+
+    styled_display_queue = paged_display_queue.style.apply(
         highlight_priority,
         axis=1
     )
@@ -504,3 +533,13 @@ with queue_tab:
     st.dataframe(case_detail_display)
 
     st.dataframe(styled_display_queue)
+
+st.divider()
+
+st.caption(
+    "Cytology Workflow Dashboard v2.0 | Stage 2"
+)
+
+st.caption(
+    f"Last Refresh: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+)
