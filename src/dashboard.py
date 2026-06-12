@@ -15,6 +15,7 @@ from triage_utils import(
     validate_case_data,
 )
 
+from predictive_features import add_predictive_features
 from qc_detector import assign_qc_flag
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
@@ -55,6 +56,8 @@ with st.sidebar.expander("Dataset Preview", expanded=False):
 st.sidebar.success("Dataset Validation Passed")
 
 triage_queue = create_triage_queue(cases)
+
+triage_queue = add_predictive_features(triage_queue)
 
 triage_queue["qc_flag"] = triage_queue.apply(
     lambda row: assign_qc_flag(
@@ -110,13 +113,32 @@ overview_tab, queue_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
 with overview_tab:
     st.subheader("Daily Workflow Metrics")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
 
     col1.metric("Total Cases", len(triage_queue))
     col2.metric("Urgent Cases", len(urgent_cases))
     col3.metric("Pathologist Review", len(pathologist_cases))
     col4.metric("Imager QC Review", len(imager_qc_review_cases))
     col5.metric("Overdue Cases", summary["overdue_cases"])
+    col6.metric(
+        "Avg Predicted Risk",
+        round(
+            triage_queue["predicted_risk_score"].mean(),
+            2
+        )
+    )
+    col7.metric(
+        "Avg Abnormal Probability",
+        f"{triage_queue['predicted_abnormal_probability'].mean() * 100:.1f}%"
+    )
+    col8.metric(
+        "AI High Risk Cases",
+        len(
+            triage_queue[
+                triage_queue["predictive_priority_flag"] == "high_risk"
+            ]
+        )
+    )
 
     st.subheader("Operational Alerts")
 
@@ -144,6 +166,7 @@ with st.sidebar:
             "Pathologist Review",
             "Routine",
             "Overdue Cases",
+            "AI High Risk Cases",
         ]
         )
 
@@ -238,10 +261,19 @@ with overview_tab:
 
         st.bar_chart(diagnosis_distribution)
 
+    with st.expander("Predicted Risk Distribution", expanded=False):
+        risk_distribution = (
+            triage_queue["predictive_priority_flag"]
+            .apply(format_workflow_label)
+            .value_counts()
+        )
+
+        st.bar_chart(risk_distribution)
+
 with qc_tab:
     st.subheader("Imager QC Analytics")
 
-    qc_col1, qc_col2 = st.columns(2)
+    qc_col1, qc_col2, qc_col3 = st.columns(3)
 
     qc_col1.metric(
         "QC Review Cases",
@@ -251,6 +283,11 @@ with qc_tab:
     qc_col2.metric(
         "QC Review %",
         f"{summary['imager_qc_review_pct']:.1f}%"
+    )
+
+    qc_col3.metric(
+        "Avg Predicted QC Failure",
+        f"{triage_queue['predicted_qc_failure_probability'].mean() * 100:.1f}%"
     )
 
     qc_distribution = (
@@ -408,6 +445,11 @@ with queue_tab:
             triage_queue["case_age_flag"] == "overdue"
         ]
 
+    elif workflow_view == "AI High Risk Cases":
+        filtered_queue = triage_queue[
+            triage_queue["predictive_priority_flag"] == "high_risk"
+        ]
+
     else:
         filtered_queue = triage_queue
 
@@ -537,7 +579,7 @@ with queue_tab:
 st.divider()
 
 st.caption(
-    "Cytology Workflow Dashboard v2.0 | Stage 2"
+    "Cytology Workflow Dashboard v3.0 | Stage 3 Predictive Analytics"
 )
 
 st.caption(
