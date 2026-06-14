@@ -1,24 +1,73 @@
 # Cytology Workflow Triage Optimizer
 
-AI-assisted cytology workflow triage and cytology QC detection project.
+A Python and Streamlit application that simulates a digital cytology workflow and applies predictive analytics to optimize operational decision-making.
 
+The project was developed as a digital pathology and healthcare analytics platform that models real-world cytology laboratory workflows, including case triage, quality control review, pathologist review prioritization, turnaround monitoring, predictive risk assessment, and workflow optimization.
 
-## Current functionality
+## Technologies
 
-This project currently reads cytology case data from a CSV file and creates a workflow triage queue.
+- Python
+- Pandas
+- Streamlit
+- NumPy
+- CSV-based workflow simulation
 
-The tool currently:
+## Project Structure
 
-- validates required CSV columns
-- validates allowed cytology values
-- assigns workflow priority based on adequacy, scan status, and diagnosis
-- flags cases needing immediate attention
-- separates urgent cases from routine workflow
-- identifies cases needing pathologist review
-- generates summary metrics
-- exports triage reports into the results folder
+```text
+cytology-workflow-triage-optimizer/
 
-## Current priority logic
+├── src/
+├── data/
+├── results/
+├── docs/
+└── README.md
+```
+
+## Current Functionality
+
+### Stage 1: Workflow Logic
+
+- Cytology case prioritization
+- Adequacy assessment
+- Scan failure handling
+- Diagnostic prioritization
+- Pathologist review workflow
+- Workflow metrics
+- Operational alerts
+- Logging
+- Imager QC review logic
+
+### Stage 2: Operational Dashboard
+
+- Streamlit dashboard
+- CSV upload functionality
+- Dataset validation
+- Workflow summary metrics
+- Operational queue management
+- Workflow filtering
+- Case search
+- Case detail view
+- QC analytics
+- Turnaround analytics
+- Historical trend analytics
+- CSV export functionality
+
+### Stage 3: Predictive Analytics and Workflow Intelligence
+
+- Predicted risk scoring
+- Predicted abnormal probability
+- Predicted QC failure probability
+- Predicted turnaround risk
+- AI priority scoring
+- Predictive workflow alerts
+- AI workflow recommendations
+- Operational forecasting metrics
+- AI-ranked operational queue
+- High-risk case identification
+- Predictive analytics visualizations
+
+## Workflow Priority Logic
 
 1. Unsatisfactory cases
 2. Scan failures
@@ -27,3 +76,33 @@ The tool currently:
 5. ASCUS
 6. Infection
 7. Normal
+
+## Current Project Status
+
+- Stage 1: Complete
+- Stage 2: Complete
+- Stage 3: Complete
+
+## Future Roadmap
+
+The long-term goal is to evolve the project from a workflow analytics platform into an AI-assisted digital pathology and cytology decision-support system.
+
+### Stage 4: Database and Productization
+
+- Database integration
+- Persistent storage
+- Deployment
+- Reporting
+- Productization
+
+### Stage 5: Image Analytics Foundation
+
+- Image analytics foundation
+- Image quality assessment
+- Digital pathology image processing
+
+### Stage 6: Cell Classification and AI-Assisted Cytology Decision Support
+
+- Cell classification
+- AI-assisted cytology decision support
+- Future image-based workflow optimization
