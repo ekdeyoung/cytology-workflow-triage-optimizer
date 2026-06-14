@@ -80,3 +80,31 @@ def create_predictive_alerts(cases):
         alerts.append("Elevated predicted turnaround delay risk detected")
 
     return alerts
+
+def create_workflow_recommendations(cases):
+    """
+    Creates AI workflow recommendations based on predictive metrics.
+    """
+
+    recommendations = []
+
+    high_risk_cases = cases[
+        cases["predictive_priority_flag"] == "high_risk"
+    ]
+
+    if len(high_risk_cases) >= 5:
+        recommendations.append(
+            "Consider assigning additional review resources to high-risk cases."
+        )
+
+    if cases["predicted_qc_failure_probability"].mean() >= 0.50:
+        recommendations.append(
+            "Consider prioritizing imager QC review workload."
+        )
+
+    if cases["predicted_turnaround_risk"].mean() >= 0.40:
+        recommendations.append(
+            "Consider reallocating resources to reduce turnaround delays."
+        )
+
+    return recommendations

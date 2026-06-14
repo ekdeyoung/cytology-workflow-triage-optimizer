@@ -119,7 +119,7 @@ overview_tab, queue_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
 with overview_tab:
     st.subheader("Daily Workflow Metrics")
 
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+    col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
     col1.metric("Total Cases", len(triage_queue))
     col2.metric("Urgent Cases", len(urgent_cases))
@@ -143,6 +143,13 @@ with overview_tab:
             triage_queue[
                 triage_queue["predictive_priority_flag"] == "high_risk"
             ]
+        )
+    )
+    col9.metric(
+        "Avg AI Priority Score",
+        round(
+            triage_queue["ai_priority_score"].mean(),
+            2
         )
     )
 
@@ -559,7 +566,14 @@ with queue_tab:
     )
 
     display_queue = display_queue.sort_values(
-        by="Priority"
+        by=[
+            "AI Priority Score",
+            "Priority",
+        ],
+        ascending=[
+            False,
+            True,
+        ]
     )
 
     paged_display_queue = display_queue.head(rows_per_page)

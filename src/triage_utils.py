@@ -20,6 +20,11 @@ def format_workflow_label(label):
     ).title()
 
     formatted_label = formatted_label.replace(
+        "Ai",
+        "AI"
+    )
+
+    formatted_label = formatted_label.replace(
         "Id",
         "ID"
     )
@@ -51,6 +56,11 @@ def format_column_label(label):
         "_",
         " "
     ).title()
+
+    formatted_label = formatted_label.replace(
+        "Ai",
+        "AI"
+    )
 
     formatted_label = formatted_label.replace(
         "Id",
