@@ -18,6 +18,7 @@ from triage_utils import(
 from predictive_features import (
     add_predictive_features,
     create_predictive_alerts,
+    create_workflow_recommendations,
 )
 
 from qc_detector import assign_qc_flag
@@ -84,6 +85,10 @@ summary = create_summary_metrics(
 workflow_alerts = create_workflow_alerts(summary)
 
 predictive_alerts = create_predictive_alerts(triage_queue)
+
+workflow_recommendations = (
+    create_workflow_recommendations(triage_queue)
+)
 
 workload_interpretations = interpret_workload(summary)
 
