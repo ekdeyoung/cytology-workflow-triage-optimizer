@@ -19,6 +19,7 @@ from predictive_features import (
     add_predictive_features,
     create_predictive_alerts,
     create_workflow_recommendations,
+    create_forecasting_metrics,
 )
 
 from qc_detector import assign_qc_flag
@@ -88,6 +89,10 @@ predictive_alerts = create_predictive_alerts(triage_queue)
 
 workflow_recommendations = (
     create_workflow_recommendations(triage_queue)
+)
+
+forecast_metrics = (
+    create_forecasting_metrics(triage_queue)
 )
 
 workload_interpretations = interpret_workload(summary)
@@ -176,6 +181,14 @@ with overview_tab:
 
     for interpretation in workload_interpretations:
         st.info(interpretation)
+
+    st.subheader("AI Workflow Recommendations")
+
+    if workflow_recommendations:
+        for recommendation in workflow_recommendations:
+            st.info(recommendation)
+    else:
+        st.success("No AI Workflow Recommendations")
 
 with st.sidebar:
     for interpretation in workload_interpretations:

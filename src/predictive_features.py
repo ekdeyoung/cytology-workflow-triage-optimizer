@@ -108,3 +108,22 @@ def create_workflow_recommendations(cases):
         )
 
     return recommendations
+
+def create_forecasting_metrics(cases):
+    """
+    Creates simple operational forecasting metrics based on current case data.
+    """
+
+    forecast = {
+        "projected_high_risk_cases": int(
+            cases["predictive_priority_flag"].eq("high_risk").sum()
+        ),
+        "projected_qc_review_burden": int(
+            cases["predicted_qc_failure_probability"].ge(0.50).sum()
+        ),
+        "projected_turnaround_delay_cases": int(
+            cases["predicted_turnaround_risk"].ge(0.50).sum()
+        ),
+    }
+
+    return forecast
