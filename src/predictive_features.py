@@ -35,7 +35,9 @@ def add_predictive_features(cases):
         + (cases["artifact_risk_score"] * 0.5)
     ).round(2)
 
-    cases["predicted_turnaround_risk"] = 0.0
+    cases["predicted_turnaround_risk"] = (
+        cases["turnaround_days"] / 7
+    ).clip(upper=1.0).round(2)
 
     cases["predictive_priority_flag"] = "standard"
 
@@ -49,3 +51,32 @@ def add_predictive_features(cases):
     ] = "high_risk"
 
     return cases
+
+def create_predictive_alerts(cases):
+    """
+    Creates workflow alerts based on synthetic predictive analytics.
+    """
+
+    alerts = []
+
+    cases["ai_priority_score"] = (
+        (cases["predicted_risk_score"] * 0.30)
+        + (cases["predicted_abnormal_probability"] * 0.35)
+        + (cases["predicted_qc_failure_probability"] * 0.20)
+        + (cases["predicted_turnaround_risk"] * 0.15)
+    ).round(2)
+    
+    high_risk_cases = cases[
+        cases["predictive_priority_flag"] == "high_risk"
+    ]
+
+    if len(high_risk_cases) >= 5:
+        alerts.append("High AI-predicted risk case volume detected")
+
+    if cases["predicted_qc_failure_probability"].mean() >= 0.50:
+        alerts.append("Elevated predicted QC failure risk detected")
+
+    if cases["predicted_turnaround_risk"].mean() >= 0.40:
+        alerts.append("Elevated predicted turnaround delay risk detected")
+
+    return alerts

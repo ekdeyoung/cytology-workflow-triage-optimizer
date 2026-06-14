@@ -15,7 +15,11 @@ from triage_utils import(
     validate_case_data,
 )
 
-from predictive_features import add_predictive_features
+from predictive_features import (
+    add_predictive_features,
+    create_predictive_alerts,
+)
+
 from qc_detector import assign_qc_flag
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
@@ -78,6 +82,8 @@ summary = create_summary_metrics(
 )
 
 workflow_alerts = create_workflow_alerts(summary)
+
+predictive_alerts = create_predictive_alerts(triage_queue)
 
 workload_interpretations = interpret_workload(summary)
 
@@ -145,6 +151,14 @@ with overview_tab:
     if workflow_alerts:
         for alert in workflow_alerts:
             st.warning(alert)
+
+    st.subheader("Predictive Alerts")
+
+    if predictive_alerts:
+        for alert in predictive_alerts:
+            st.warning(alert)
+    else:
+        st.success("No Predictive Alerts")
 
     st.subheader("Workload Interpretation")
 
@@ -301,7 +315,7 @@ with qc_tab:
 with turnaround_tab:
     st.subheader("Turnaround Analytics")
 
-    tat_col1, tat_col2, tat_col3, tat_col4 = st.columns(4)
+    tat_col1, tat_col2, tat_col3, tat_col4, tat_col5 = st.columns(5)
 
     tat_col1.metric(
         "Average Turnaround",
@@ -321,6 +335,11 @@ with turnaround_tab:
     tat_col4.metric(
         "Aging Cases",
         summary["aging_cases"]
+    )
+
+    tat_col5.metric(
+        "Avg Predicted TAT Risk",
+        f"{triage_queue['predicted_turnaround_risk'].mean() * 100:.1f}%"
     )
 
     st.write("Turnaround Time Distribution")
