@@ -190,6 +190,25 @@ with overview_tab:
     else:
         st.success("No AI Workflow Recommendations")
 
+    st.subheader("Operational Forecast")
+
+    forecast_col1, forecast_col2, forecast_col3 = st.columns(3)
+
+    forecast_col1.metric(
+        "Projected High Risk Cases",
+        forecast_metrics["projected_high_risk_cases"]
+    )
+
+    forecast_col2.metric(
+        "Projected QC Review Burden",
+        forecast_metrics["projected_qc_review_burden"]
+    )
+
+    forecast_col3.metric(
+        "Projected Delay Cases",
+        forecast_metrics["projected_turnaround_delay_cases"]
+    )
+
 with st.sidebar:
     for interpretation in workload_interpretations:
         st.write(f"- {interpretation}")
