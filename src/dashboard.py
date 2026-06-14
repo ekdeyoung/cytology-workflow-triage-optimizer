@@ -177,11 +177,6 @@ with overview_tab:
     else:
         st.success("No Predictive Alerts")
 
-    st.subheader("Workload Interpretation")
-
-    for interpretation in workload_interpretations:
-        st.info(interpretation)
-
     st.subheader("AI Workflow Recommendations")
 
     if workflow_recommendations:
@@ -189,6 +184,12 @@ with overview_tab:
             st.info(recommendation)
     else:
         st.success("No AI Workflow Recommendations")
+
+    st.subheader("Workload Interpretation")
+
+    for interpretation in workload_interpretations:
+        st.info(interpretation)
+
 
     st.subheader("Operational Forecast")
 
