@@ -93,6 +93,18 @@ def get_cases_dataframe():
 
     return cases_df
 
+def import_cases_from_dataframe(cases_df):
+    connection = get_database_connection()
+
+    cases_df.to_sql(
+        "cases",
+        connection,
+        if_exists="replace",
+        index=False
+    )
+
+    connection.close()
+
 if __name__ == "__main__":
     initialize_database()
     print("Database initialized successfully.")
