@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+import pandas as pd
 
 DATABASE_PATH = Path("data/cytology_workflow.db")
 
@@ -76,6 +77,21 @@ def get_all_cases():
     connection.close()
 
     return cases
+
+def get_cases_dataframe():
+    connection = get_database_connection()
+
+    cases_df = pd.read_sql_query(
+        """
+        SELECT *
+        FROM cases
+        """,
+        connection
+    )
+
+    connection.close()
+
+    return cases_df
 
 if __name__ == "__main__":
     initialize_database()
