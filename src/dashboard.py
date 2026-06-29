@@ -162,6 +162,16 @@ with overview_tab:
         if summary["imager_qc_review_cases"] > 5:
             st.write("• Elevated imager QC review workload")
 
+        st.markdown("**Recommended Next Action**")
+
+        if lab_status == "Watch":
+            st.write(
+                "Prioritize urgent cases, assign additional QC review resources, "
+                "and monitor turnaround times."
+            )
+        else:
+            st.write("Continue routine workflow monitoring.")
+
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
     col1.metric("Total Cases", len(triage_queue))
