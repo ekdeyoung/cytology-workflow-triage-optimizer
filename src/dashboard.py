@@ -186,7 +186,10 @@ with overview_tab:
     )
 
     st.divider()
-    st.subheader("Operational Alerts")
+    st.subheader("Action Center")
+    st.caption("Operational alerts, predictive risks, and AI recommendations requiring attention.")
+
+    st.markdown("**Operational Alerts**")
 
     if workflow_alerts:
         for alert in workflow_alerts:
