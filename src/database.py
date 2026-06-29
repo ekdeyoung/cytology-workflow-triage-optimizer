@@ -19,8 +19,10 @@ def initialize_database():
             adequacy TEXT,
             scan_status TEXT,
             diagnosis TEXT,
-            priority INTEGER,
-            needs_attention TEXT
+            received_date TEXT,
+            reported_date TEXT,
+            blur_score REAL,
+            artifact_risk_score REAL
         )
 """)
     
