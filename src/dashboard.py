@@ -139,6 +139,7 @@ overview_tab, queue_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
 with overview_tab:
     st.subheader("Lab Status Overview")
     st.caption("Key operational indicators for the current cytology workload.")
+    st.divider()
 
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
@@ -174,6 +175,7 @@ with overview_tab:
         )
     )
 
+    st.divider()
     st.subheader("Operational Alerts")
 
     if workflow_alerts:
