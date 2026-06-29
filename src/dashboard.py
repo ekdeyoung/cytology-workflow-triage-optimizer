@@ -189,13 +189,13 @@ with overview_tab:
     st.subheader("Action Center")
     st.caption("Operational alerts, predictive risks, and AI recommendations requiring attention.")
 
-    st.markdown("**Operational Alerts**")
+    st.markdown("### Critical Operational Alerts")
 
     if workflow_alerts:
         for alert in workflow_alerts:
             st.warning(alert)
 
-    st.subheader("Predictive Alerts")
+    st.markdown("### Predictive Risks")
 
     if predictive_alerts:
         for alert in predictive_alerts:
@@ -203,7 +203,7 @@ with overview_tab:
     else:
         st.success("No Predictive Alerts")
 
-    st.subheader("AI Workflow Recommendations")
+    st.markdown("### Recommended Actions")
 
     if workflow_recommendations:
         for recommendation in workflow_recommendations:
