@@ -172,6 +172,10 @@ with overview_tab:
         else:
             st.write("Continue routine workflow monitoring.")
 
+        st.divider()
+        st.subheader("Key Performance Indicators")
+        st.caption("Current operational and predictive performance metrics.")
+
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
     col1.metric("Total Cases", len(triage_queue))
