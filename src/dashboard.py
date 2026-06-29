@@ -148,8 +148,9 @@ with overview_tab:
         lab_status = "Stable"
         lab_status_message = "No major operational risks detected."
 
-    st.info(f"Lab Status: {lab_status}")
-    st.write(lab_status_message)
+    with st.container():
+        st.subheader(f"🟡 Lab Status: {lab_status}")
+        st.write(lab_status_message)
 
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
