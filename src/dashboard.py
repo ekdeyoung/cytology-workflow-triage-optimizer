@@ -151,6 +151,16 @@ with overview_tab:
     with st.container():
         st.subheader(f"🟡 Lab Status: {lab_status}")
         st.write(lab_status_message)
+        st.markdown("**Current Operational Risks**")
+
+        if len(urgent_cases) >= 3:
+            st.write("• High urgent case workload")
+
+        if summary["overdue_cases"] > 0:
+            st.write("• Overdue cases require attention")
+
+        if summary["imager_qc_review_cases"] > 5:
+            st.write("• Elevated imager QC review workload")
 
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
