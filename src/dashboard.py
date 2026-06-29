@@ -176,25 +176,17 @@ with overview_tab:
         st.subheader("Key Performance Indicators")
         st.caption("Current operational and predictive performance metrics.")
 
-    col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
+    st.markdown("**Operations**")
+    operations_col1, operations_col2, operations_col3 = st.columns(3)
 
-    col1.metric("Total Cases", len(triage_queue))
-    col2.metric("Urgent Cases", len(urgent_cases))
-    col3.metric("Pathologist Review", len(pathologist_cases))
-    col4.metric("Imager QC Review", len(imager_qc_review_cases))
-    col5.metric("Overdue Cases", summary["overdue_cases"])
-    col6.metric(
-        "Avg Predicted Risk",
-        round(
-            triage_queue["predicted_risk_score"].mean(),
-            2
-        )
-    )
-    col7.metric(
-        "Avg Abnormal Probability",
-        f"{triage_queue['predicted_abnormal_probability'].mean() * 100:.1f}%"
-    )
-    col8.metric(
+    operations_col1.metric("Total Cases", len(triage_queue))
+    operations_col2.metric("Urgent Cases", len(urgent_cases))
+    operations_col3.metric("Overdue Cases", summary["overdue_cases"])
+
+    st.markdown("**AI & Quality**")
+    ai_col1, ai_col2, ai_col3 = st.columns(3)
+
+    ai_col1.metric(
         "AI High Risk Cases",
         len(
             triage_queue[
@@ -202,7 +194,16 @@ with overview_tab:
             ]
         )
     )
-    col9.metric(
+
+    ai_col2.metric(
+        "Avg Predicted Risk",
+        round(
+            triage_queue["predicted_risk_score"].mean(),
+            2
+        )
+    )
+
+    ai_col3.metric(
         "Avg AI Priority Score",
         round(
             triage_queue["ai_priority_score"].mean(),
