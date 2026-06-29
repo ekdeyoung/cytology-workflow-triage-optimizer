@@ -141,6 +141,15 @@ with overview_tab:
     st.caption("Key operational indicators for the current cytology workload.")
     st.divider()
 
+    if summary["overdue_cases"] > 0 or len(urgent_cases) >= 3:
+        lab_status = "Watch"
+        lab_status_message = "Active workload risks require monitoring."
+    else:
+        lab_status = "Stable"
+        lab_status_message = "No major operational risks detected."
+
+    st.info(f"Lab Status: {lab_status} | {lab_status_message}")
+
     col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 
     col1.metric("Total Cases", len(triage_queue))
