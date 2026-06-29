@@ -651,7 +651,7 @@ with queue_tab:
 st.divider()
 
 st.caption(
-    "Cytology Workflow Dashboard v3.0 | Stage 3 Predictive Analytics"
+    "Cytology Workflow Dashboard v4.0 | Database-Backed Workflow"
 )
 
 st.caption(
