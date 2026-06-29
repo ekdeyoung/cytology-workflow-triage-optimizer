@@ -28,11 +28,20 @@ from data_repository import load_cases
 INPUT_FILE = "data/raw/cytology_cases.csv"
 TREND_FILE = "data/raw/cytology_daily_metrics.csv"
 
-st.title("Cytology Workflow Dashboard")
+st.title("Cytology Workflow Triage Optimizer")
+
+st.markdown(
+    "A database-backed cytology operations dashboard for triage, QC review, "
+    "turnaround monitoring, and predictive workflow intelligence."
+)
 
 st.caption(
     f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 )
+
+st.sidebar.title("Operations Center")
+st.sidebar.caption("Workflow Management")
+st.sidebar.divider()
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload Cytology Case CSV",
