@@ -23,6 +23,7 @@ from predictive_features import (
 )
 
 from qc_detector import assign_qc_flag
+from data_repository import load_cases
 
 INPUT_FILE = "data/raw/cytology_cases.csv"
 TREND_FILE = "data/raw/cytology_daily_metrics.csv"
@@ -43,7 +44,7 @@ if uploaded_file is not None:
     cases = pd.read_csv(uploaded_file)
 else:
     st.sidebar.info("Using Default Sample Dataset")
-    cases = pd.read_csv(INPUT_FILE)
+    cases = load_cases()
 
 trend_data = pd.read_csv(TREND_FILE)
 trend_data["date"] = pd.to_datetime(trend_data["date"])
