@@ -351,7 +351,21 @@ with overview_tab:
         axis=1
     )
 
-    st.dataframe(styled_high_priority_display)
+    priority_worklist_columns = [
+        "Case ID",
+        "Diagnosis",
+        "Priority",
+        "Needs Attention",
+        "QC Flag",
+        "AI Priority Score",
+        "Turnaround Days",
+    ]
+
+    priority_worklist_display = high_priority_display[
+        priority_worklist_columns
+    ]
+
+    st.dataframe(priority_worklist_display)
 
 with overview_tab:
     st.subheader("Overview Analytics")
