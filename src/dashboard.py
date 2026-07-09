@@ -237,30 +237,6 @@ with overview_tab:
     else:
         st.success("No AI Workflow Recommendations")
 
-    st.subheader("Workload Interpretation")
-
-    for interpretation in workload_interpretations:
-        st.info(interpretation)
-
-
-    st.subheader("Operational Forecast")
-
-    forecast_col1, forecast_col2, forecast_col3 = st.columns(3)
-
-    forecast_col1.metric(
-        "Projected High Risk Cases",
-        forecast_metrics["projected_high_risk_cases"]
-    )
-
-    forecast_col2.metric(
-        "Projected QC Review Burden",
-        forecast_metrics["projected_qc_review_burden"]
-    )
-
-    forecast_col3.metric(
-        "Projected Delay Cases",
-        forecast_metrics["projected_turnaround_delay_cases"]
-    )
 
 with st.sidebar:
     for interpretation in workload_interpretations:
@@ -377,35 +353,31 @@ with overview_tab:
 
     st.dataframe(priority_worklist_display)
 
-with overview_tab:
-    st.subheader("Overview Analytics")
-        
-    with st.expander("Workflow Distribution", expanded=False):
-        workflow_distribution = (
-            triage_queue["needs_attention"]
-            .apply(format_workflow_label)
-            .value_counts()
-        )
+with trend_tab:
+    st.subheader("Workflow Intelligence")
 
-        st.bar_chart(workflow_distribution)
+    for interpretation in workload_interpretations:
+        st.info(interpretation)
 
-    with st.expander("Diagnosis Distribution", expanded=False):
-        diagnosis_distribution = (
-            triage_queue["diagnosis"]
-            .apply(format_workflow_label)
-            .value_counts()
-        )
 
-        st.bar_chart(diagnosis_distribution)
+    st.subheader("Operational Forecast")
 
-    with st.expander("Predicted Risk Distribution", expanded=False):
-        risk_distribution = (
-            triage_queue["predictive_priority_flag"]
-            .apply(format_workflow_label)
-            .value_counts()
-        )
+    forecast_col1, forecast_col2, forecast_col3 = st.columns(3)
 
-        st.bar_chart(risk_distribution)
+    forecast_col1.metric(
+        "Projected High Risk Cases",
+        forecast_metrics["projected_high_risk_cases"]
+    )
+
+    forecast_col2.metric(
+        "Projected QC Review Burden",
+        forecast_metrics["projected_qc_review_burden"]
+    )
+
+    forecast_col3.metric(
+        "Projected Delay Cases",
+        forecast_metrics["projected_turnaround_delay_cases"]
+    )
 
 with qc_tab:
     st.subheader("Imager QC Analytics")
