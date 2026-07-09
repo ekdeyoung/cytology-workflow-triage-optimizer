@@ -535,7 +535,8 @@ with trend_tab:
     )
 
 with queue_tab:
-    st.subheader("Workflow Queue")
+    st.subheader("Operational Work Queue")
+    st.caption("Filtered case worklist for daily cytology operations.")
 
     rows_per_page = st.selectbox(
         "Rows Per Page",
