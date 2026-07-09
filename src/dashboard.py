@@ -126,10 +126,11 @@ display_value_columns = [
     "diagnosis",
 ]
 
-overview_tab, queue_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
+overview_tab, queue_tab, intelligence_tab, qc_tab, turnaround_tab, trend_tab = st.tabs(
     [
         "Overview",
         "Operational Queue",
+        "Workflow Intelligence",
         "QC Analytics",
         "Turnaround Analytics",
         "Trend Analytics",
@@ -353,12 +354,14 @@ with overview_tab:
 
     st.dataframe(priority_worklist_display)
 
-with trend_tab:
+with intelligence_tab:
     st.subheader("Workflow Intelligence")
+    st.caption("AI-assisted workload interpretation and operational forecasting.")
+
+    st.subheader("Workload Interpretation")
 
     for interpretation in workload_interpretations:
         st.info(interpretation)
-
 
     st.subheader("Operational Forecast")
 
