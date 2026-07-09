@@ -363,7 +363,17 @@ with overview_tab:
 
     priority_worklist_display = high_priority_display[
         priority_worklist_columns
-    ]
+    ].copy()
+
+    priority_worklist_display["AI Priority Score"] = (
+        priority_worklist_display["AI Priority Score"]
+        .round(2)
+    )
+
+    priority_worklist_display["Turnaround Days"] = (
+        priority_worklist_display["Turnaround Days"]
+        .astype(str) + " days"
+    )
 
     st.dataframe(priority_worklist_display)
 
