@@ -303,7 +303,9 @@ def highlight_priority(row):
     return [""] * len(row)
 
 with overview_tab:  
-    st.subheader("High Priority Cases")
+    st.divider()
+    st.subheader("Today's Priority Worklist")
+    st.caption("Cases requiring the most immediate operational attention.")
 
     high_priority_cases = triage_queue[
         triage_queue["priority"] <= 5
@@ -341,7 +343,7 @@ with overview_tab:
     )
 
     st.caption(
-        f"Showing {len(high_priority_display)} High Priority Cases"
+        f"{len(high_priority_display)} cases currently require priority review."
     )
 
     styled_high_priority_display = high_priority_display.style.apply(
