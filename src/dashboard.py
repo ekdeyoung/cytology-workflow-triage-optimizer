@@ -700,11 +700,38 @@ with queue_tab:
         ]
     )
 
-    paged_display_queue = display_queue.head(rows_per_page)
+    queue_display_columns = [
+        "Case ID",
+        "Priority",
+        "Diagnosis",
+        "Needs Attention",
+        "QC Flag",
+        "AI Priority Score",
+        "Predicted Risk Score",
+        "Turnaround Days",
+    ]
 
-    styled_display_queue = paged_display_queue.style.apply(
-        highlight_priority,
-        axis=1
+    paged_display_queue = (
+        display_queue[
+            queue_display_columns
+        ]
+        .head(rows_per_page)
+        .copy()
+    )
+
+    styled_display_queue = (
+        paged_display_queue.style
+        .apply(
+            highlight_priority,
+            axis=1
+        )
+        .format(
+            {
+                "AI Priority Score": "{:.2f}",
+                "Predicted Risk Score": "{:.2f}",
+                "Turnaround Days": "{} days",
+            }
+        )
     )
 
     csv_export = display_queue.to_csv(index=False)
