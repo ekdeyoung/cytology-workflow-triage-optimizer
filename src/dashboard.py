@@ -583,7 +583,10 @@ with queue_tab:
 
     display_queue = filtered_queue.copy()
 
+    st.markdown("**Queue Summary**")
+
     queue_col1, queue_col2, queue_col3 = st.columns(3)
+    queue_col4, queue_col5, queue_col6 = st.columns(3)
 
     queue_col1.metric(
         "Displayed Cases",
@@ -600,12 +603,41 @@ with queue_tab:
     )
 
     queue_col3.metric(
+        "Pathologist Review",
+        len(
+            filtered_queue[
+                filtered_queue["needs_attention"] == "pathologist_review"
+            ]
+        )
+    )
+
+    queue_col4.metric(
+        "QC Review",
+        len(
+            filtered_queue[
+                filtered_queue["qc_flag"] == "imager_qc_review"
+            ]
+        )
+    )
+
+    queue_col5.metric(
         "Overdue",
         len(
             filtered_queue[
                 filtered_queue["case_age_flag"] == "overdue"
             ]
         )
+    )
+
+    average_ai_priority = (
+        round(filtered_queue["ai_priority_score"].mean(), 2)
+        if not filtered_queue.empty
+        else 0.0
+    )
+
+    queue_col6.metric(
+        "Avg AI Priority",
+        average_ai_priority
     )
 
     display_queue["needs_attention"] = (
@@ -684,22 +716,71 @@ with queue_tab:
         mime="text/csv",
     )
 
-    st.subheader("Case Detail View")
+    st.subheader("Selected Case Summary")
 
     case_detail = display_queue[
         display_queue["Case ID"] == selected_case
     ]
 
-    case_detail_display = (
-        case_detail
-        .astype(str)
-        .T
-        .rename(columns={case_detail.index[0]: "Case Details"})
+    case_record = case_detail.iloc[0]
+
+    case_col1, case_col2, case_col3 = st.columns(3)
+
+    case_col1.metric(
+        "Case ID",
+        case_record["Case ID"]
     )
 
-    st.dataframe(case_detail_display)
+    case_col2.metric(
+        "Priority",
+        case_record["Priority"]
+    )
 
-    st.dataframe(styled_display_queue)
+    case_col3.metric(
+        "AI Priority Score",
+        round(float(case_record["AI Priority Score"]), 2)
+    )
+
+    st.markdown("**Case Information**")
+
+    info_col1, info_col2, info_col3 = st.columns(3)
+
+    info_col1.write(
+        f"**Diagnosis:** {case_record.get('Diagnosis', 'Not available')}"
+    )
+
+    info_col2.write(
+        f"**Adequacy:** {case_record.get('Adequacy', 'Not available')}"
+    )
+
+    info_col3.write(
+        f"**Scan Status:** {case_record.get('Scan Status', 'Not available')}"
+    )
+
+    st.markdown("**Workflow Status**")
+
+    workflow_col1, workflow_col2, workflow_col3 = st.columns(3)
+
+    workflow_col1.write(
+        f"**Needs Attention:** "
+        f"{case_record.get('Needs Attention', 'Not available')}"
+    )
+
+    workflow_col2.write(
+        f"**QC Status:** {case_record.get('QC Flag', 'Not available')}"
+    )
+
+    workflow_col3.write(
+        f"**Turnaround:** "
+        f"{case_record.get('Turnaround Days', 'Not available')} days"
+    )
+
+    st.markdown("**Operational Worklist**")
+
+    st.dataframe(
+        styled_display_queue,
+        use_container_width=True
+    )
 
 st.divider()
 
