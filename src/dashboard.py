@@ -751,7 +751,7 @@ with queue_tab:
 
     case_record = case_detail.iloc[0]
 
-    case_col1, case_col2, case_col3 = st.columns(3)
+    case_col1, case_col2, case_col3, case_col4 = st.columns(4)
 
     case_col1.metric(
         "Case ID",
@@ -764,23 +764,28 @@ with queue_tab:
     )
 
     case_col3.metric(
-        "AI Priority Score",
-        round(float(case_record["AI Priority Score"]), 2)
+        "AI Priority",
+        f"{float(case_record['AI Priority Score']):.2f}"
     )
 
-    st.markdown("**Case Information**")
+    case_col4.metric(
+        "Predicted Risk",
+        f"{float(case_record['Predicted Risk Score']) * 100:.0f}%"
+    )
 
-    info_col1, info_col2, info_col3 = st.columns(3)
+    st.markdown("**Clinical Information**")
 
-    info_col1.write(
+    clinical_col1, clinical_col2, clinical_col3 = st.columns(3)
+
+    clinical_col1.write(
         f"**Diagnosis:** {case_record.get('Diagnosis', 'Not available')}"
     )
 
-    info_col2.write(
+    clinical_col2.write(
         f"**Adequacy:** {case_record.get('Adequacy', 'Not available')}"
     )
 
-    info_col3.write(
+    clinical_col3.write(
         f"**Scan Status:** {case_record.get('Scan Status', 'Not available')}"
     )
 
@@ -800,6 +805,25 @@ with queue_tab:
     workflow_col3.write(
         f"**Turnaround:** "
         f"{case_record.get('Turnaround Days', 'Not available')} days"
+    )
+
+    st.markdown("**Predictive Assessment**")
+
+    risk_col1, risk_col2, risk_col3 = st.columns(3)
+
+    risk_col1.metric(
+        "Abnormal Probability",
+        f"{float(case_record['Predicted Abnormal Probability']) * 100:.0f}%"
+    )
+
+    risk_col2.metric(
+        "QC Failure Risk",
+        f"{float(case_record['Predicted QC Failure Probability']) * 100:.0f}%"
+    )
+
+    risk_col3.metric(
+        "Turnaround Risk",
+        f"{float(case_record['Predicted Turnaround Risk']) * 100:.0f}%"
     )
 
     st.markdown("**Operational Worklist**")
