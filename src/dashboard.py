@@ -29,6 +29,67 @@ INPUT_FILE = "data/raw/cytology_cases.csv"
 TREND_FILE = "data/raw/cytology_daily_metrics.csv"
 
 
+def initialize_workflow_session():
+    """Create temporary demo workflow storage for the current browser session."""
+    if "workflow_case_state" not in st.session_state:
+        st.session_state.workflow_case_state = {}
+
+    if "workflow_activity_log" not in st.session_state:
+        st.session_state.workflow_activity_log = []
+
+
+def apply_workflow_session_state(queue):
+    """Overlay temporary demo assignments and statuses onto the case queue."""
+    session_queue = queue.copy()
+    case_state = st.session_state.workflow_case_state
+
+    session_queue["assigned_to"] = session_queue["case_id"].map(
+        lambda case_id: case_state.get(case_id, {}).get("assigned_to", "Unassigned")
+    )
+    session_queue["workflow_status"] = session_queue["case_id"].map(
+        lambda case_id: case_state.get(case_id, {}).get("workflow_status", "not_started")
+    )
+    session_queue["last_action"] = session_queue["case_id"].map(
+        lambda case_id: case_state.get(case_id, {}).get("last_action", "No session activity")
+    )
+
+    return session_queue
+
+
+def record_workflow_action(case_id, action, workflow_status, assigned_to=None):
+    """Update one case and append an auditable action to the session log."""
+    current_state = st.session_state.workflow_case_state.get(case_id, {}).copy()
+
+    if assigned_to is not None:
+        current_state["assigned_to"] = assigned_to
+
+    current_state["workflow_status"] = workflow_status
+    current_state["last_action"] = action
+    current_state["updated_at"] = datetime.now().strftime("%H:%M:%S")
+    st.session_state.workflow_case_state[case_id] = current_state
+
+    st.session_state.workflow_activity_log.insert(
+        0,
+        {
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "case_id": case_id,
+            "action": action,
+            "assigned_to": current_state.get("assigned_to", "Unassigned"),
+        },
+    )
+
+
+def calculate_session_statistics(queue):
+    """Return counts describing workflow actions completed during the demo session."""
+    return {
+        "assigned": int((queue["assigned_to"] != "Unassigned").sum()),
+        "qc_review": int((queue["workflow_status"] == "qc_review").sum()),
+        "reviewed": int((queue["workflow_status"] == "reviewed").sum()),
+        "completed": int((queue["workflow_status"] == "completed").sum()),
+        "actions": len(st.session_state.workflow_activity_log),
+    }
+
+
 def safe_mean(dataframe, column_name):
     """Return a rounded mean or 0.0 when a filtered queue is empty."""
     if dataframe.empty or column_name not in dataframe.columns:
@@ -76,10 +137,23 @@ def filter_operational_queue(queue, workflow_view, qc_view, quick_filter):
 
 def sort_operational_queue(queue, sort_option):
     """Apply commercially useful multi-level sorting rules."""
+    sortable_queue = queue.copy()
+    sortable_queue["workflow_status_rank"] = (
+        sortable_queue.get("workflow_status", "not_started")
+        .map({
+            "not_started": 0,
+            "assigned": 1,
+            "qc_review": 1,
+            "reviewed": 2,
+            "completed": 3,
+        })
+        .fillna(0)
+    )
+
     sorting_rules = {
         "Recommended Priority": (
-            ["ai_priority_score", "priority", "turnaround_days"],
-            [False, True, False],
+            ["workflow_status_rank", "ai_priority_score", "priority", "turnaround_days"],
+            [True, False, True, False],
         ),
         "Highest AI Risk": (
             ["predicted_risk_score", "ai_priority_score"],
@@ -97,7 +171,11 @@ def sort_operational_queue(queue, sort_option):
     }
 
     sort_columns, ascending = sorting_rules[sort_option]
-    return queue.sort_values(by=sort_columns, ascending=ascending).copy()
+    sorted_queue = sortable_queue.sort_values(
+        by=sort_columns,
+        ascending=ascending,
+    ).copy()
+    return sorted_queue.drop(columns=["workflow_status_rank"])
 
 
 def add_worklist_badges(display_queue):
@@ -137,6 +215,20 @@ def add_worklist_badges(display_queue):
         .fillna(display_queue["case_age_flag"].apply(format_workflow_label))
     )
 
+    if "workflow_status" in display_queue.columns:
+        workflow_badges = {
+            "not_started": "⚪ Not Started",
+            "assigned": "🔵 Assigned",
+            "qc_review": "🟠 In QC Review",
+            "reviewed": "🟣 Reviewed",
+            "completed": "🟢 Completed",
+        }
+        display_queue["workflow_status"] = (
+            display_queue["workflow_status"]
+            .map(workflow_badges)
+            .fillna(display_queue["workflow_status"].apply(format_workflow_label))
+        )
+
     return display_queue
 
 
@@ -156,6 +248,9 @@ def prepare_display_queue(queue, display_value_columns):
     # Use supervisor-friendly labels for fields whose technical names do not
     # translate cleanly through the generic column formatter.
     renamed_columns["case_age_flag"] = "Age Status"
+    renamed_columns["assigned_to"] = "Assigned To"
+    renamed_columns["workflow_status"] = "Workflow Status"
+    renamed_columns["last_action"] = "Last Session Action"
 
     return display_queue.rename(columns=renamed_columns)
 
@@ -266,6 +361,9 @@ triage_queue["qc_flag"] = triage_queue.apply(
     ),
     axis=1,
 )
+
+initialize_workflow_session()
+triage_queue = apply_workflow_session_state(triage_queue)
 
 urgent_cases = get_urgent_cases(triage_queue)
 pathologist_cases = get_pathologist_review_cases(triage_queue)
@@ -597,6 +695,31 @@ with queue_tab:
         "Prioritized case worklist for daily cytology operations and supervisory review."
     )
 
+    session_statistics = calculate_session_statistics(triage_queue)
+
+    st.markdown("**Demo Session Activity**")
+    session_col1, session_col2, session_col3, session_col4, session_col5 = st.columns(5)
+    session_col1.metric("Assigned", session_statistics["assigned"])
+    session_col2.metric("In QC Review", session_statistics["qc_review"])
+    session_col3.metric("Reviewed", session_statistics["reviewed"])
+    session_col4.metric("Completed", session_statistics["completed"])
+    session_col5.metric("Actions", session_statistics["actions"])
+
+    with st.expander("Session Activity Log", expanded=False):
+        if st.session_state.workflow_activity_log:
+            st.dataframe(
+                pd.DataFrame(st.session_state.workflow_activity_log),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.caption("No workflow actions have been recorded in this session.")
+
+        if st.button("Reset Demo Session", use_container_width=True):
+            st.session_state.workflow_case_state = {}
+            st.session_state.workflow_activity_log = []
+            st.rerun()
+
     quick_filter = st.radio(
         "Quick View",
         [
@@ -717,6 +840,9 @@ with queue_tab:
             "Needs Attention": "Needs Attention",
             "QC Flag": "QC Flag",
             "Age Status": "Age Status",
+            "Assigned To": "Assigned To",
+            "Workflow Status": "Workflow Status",
+            "Last Session Action": "Last Session Action",
             "AI Priority Score": "AI Priority Score",
             "Predicted Risk Score": "Predicted Risk Score",
             "Turnaround Days": "Turnaround Days",
@@ -734,6 +860,8 @@ with queue_tab:
             "Needs Attention",
             "QC Flag",
             "Age Status",
+            "Assigned To",
+            "Workflow Status",
             "AI Priority Score",
             "Predicted Risk Score",
             "Turnaround Days",
@@ -809,6 +937,86 @@ with queue_tab:
         st.markdown("**Recommended Action**")
         st.info(create_case_recommendation(case_record))
 
+        st.markdown("**Workflow Action Center**")
+        st.caption(
+            "These actions update only the current Streamlit session and do not modify source data."
+        )
+
+        current_assignee = case_record.get("assigned_to", "Unassigned")
+        reviewer_options = [
+            "Unassigned",
+            "Cytotechnologist",
+            "Senior Cytotechnologist",
+            "Pathologist",
+            "QC Specialist",
+        ]
+        default_reviewer_index = (
+            reviewer_options.index(current_assignee)
+            if current_assignee in reviewer_options
+            else 0
+        )
+
+        action_col1, action_col2 = st.columns([2, 1])
+        with action_col1:
+            selected_reviewer = st.selectbox(
+                "Assign Reviewer",
+                reviewer_options,
+                index=default_reviewer_index,
+                key=f"reviewer_{selected_case_id}",
+            )
+        with action_col2:
+            st.metric(
+                "Session Status",
+                format_workflow_label(case_record.get("workflow_status", "not_started")),
+            )
+
+        button_col1, button_col2, button_col3, button_col4 = st.columns(4)
+
+        if button_col1.button(
+            "Assign Case",
+            use_container_width=True,
+            disabled=selected_reviewer == "Unassigned",
+        ):
+            record_workflow_action(
+                selected_case_id,
+                f"Assigned to {selected_reviewer}",
+                "assigned",
+                selected_reviewer,
+            )
+            st.rerun()
+
+        if button_col2.button("Send to QC", use_container_width=True):
+            qc_assignee = (
+                selected_reviewer
+                if selected_reviewer != "Unassigned"
+                else "QC Specialist"
+            )
+            record_workflow_action(
+                selected_case_id,
+                "Sent to QC review",
+                "qc_review",
+                qc_assignee,
+            )
+            st.rerun()
+
+        if button_col3.button("Mark Reviewed", use_container_width=True):
+            record_workflow_action(
+                selected_case_id,
+                "Review completed",
+                "reviewed",
+                selected_reviewer if selected_reviewer != "Unassigned" else None,
+            )
+            st.rerun()
+
+        if button_col4.button("Complete Workflow", use_container_width=True):
+            record_workflow_action(
+                selected_case_id,
+                "Workflow completed",
+                "completed",
+                selected_reviewer if selected_reviewer != "Unassigned" else None,
+            )
+            st.rerun()
+
         st.subheader("Operational Worklist")
 
         display_queue = prepare_display_queue(
@@ -873,5 +1081,5 @@ with queue_tab:
         )
 
 st.divider()
-st.caption("Cytology Workflow Dashboard v4.1 | Commercial Worklist Sprint")
+st.caption("Cytology Workflow Dashboard v4.2 | Interactive Workflow Actions")
 st.caption(f"Last Refresh: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
