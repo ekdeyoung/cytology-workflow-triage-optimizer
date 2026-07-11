@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-from triage_utils import(
+from triage_utils import (
     create_triage_queue,
     get_urgent_cases,
     get_pathologist_review_cases,
@@ -28,6 +28,194 @@ from data_repository import load_cases
 INPUT_FILE = "data/raw/cytology_cases.csv"
 TREND_FILE = "data/raw/cytology_daily_metrics.csv"
 
+
+def safe_mean(dataframe, column_name):
+    """Return a rounded mean or 0.0 when a filtered queue is empty."""
+    if dataframe.empty or column_name not in dataframe.columns:
+        return 0.0
+    return round(float(dataframe[column_name].mean()), 2)
+
+
+def filter_operational_queue(queue, workflow_view, qc_view, quick_filter):
+    """Apply sidebar filters and one-click worklist filters in one place."""
+    filtered_queue = queue.copy()
+
+    workflow_filters = {
+        "Immediate Attention": filtered_queue["needs_attention"] == "immediate_attention",
+        "Pathologist Review": filtered_queue["needs_attention"] == "pathologist_review",
+        "Routine": filtered_queue["needs_attention"] == "routine",
+        "Overdue Cases": filtered_queue["case_age_flag"] == "overdue",
+        "AI High Risk Cases": filtered_queue["predictive_priority_flag"] == "high_risk",
+    }
+
+    if workflow_view in workflow_filters:
+        filtered_queue = filtered_queue[workflow_filters[workflow_view]]
+
+    if qc_view == "Imager QC Review":
+        filtered_queue = filtered_queue[
+            filtered_queue["qc_flag"] == "imager_qc_review"
+        ]
+    elif qc_view == "Imager QC Pass":
+        filtered_queue = filtered_queue[
+            filtered_queue["qc_flag"] == "imager_qc_pass"
+        ]
+
+    quick_filters = {
+        "Immediate Attention": filtered_queue["needs_attention"] == "immediate_attention",
+        "QC Review": filtered_queue["qc_flag"] == "imager_qc_review",
+        "Overdue": filtered_queue["case_age_flag"] == "overdue",
+        "High AI Risk": filtered_queue["predictive_priority_flag"] == "high_risk",
+        "Abnormal": filtered_queue["diagnosis"].isin(["ASC-US", "LSIL", "ASC-H", "HSIL", "AGC"]),
+    }
+
+    if quick_filter in quick_filters:
+        filtered_queue = filtered_queue[quick_filters[quick_filter]]
+
+    return filtered_queue.copy()
+
+
+def sort_operational_queue(queue, sort_option):
+    """Apply commercially useful multi-level sorting rules."""
+    sorting_rules = {
+        "Recommended Priority": (
+            ["ai_priority_score", "priority", "turnaround_days"],
+            [False, True, False],
+        ),
+        "Highest AI Risk": (
+            ["predicted_risk_score", "ai_priority_score"],
+            [False, False],
+        ),
+        "Longest Turnaround": (
+            ["turnaround_days", "ai_priority_score"],
+            [False, False],
+        ),
+        "Clinical Priority": (
+            ["priority", "ai_priority_score"],
+            [True, False],
+        ),
+        "Case ID": (["case_id"], [True]),
+    }
+
+    sort_columns, ascending = sorting_rules[sort_option]
+    return queue.sort_values(by=sort_columns, ascending=ascending).copy()
+
+
+def add_worklist_badges(display_queue):
+    """Add compact visual status cues while preserving the source data."""
+    needs_attention_badges = {
+        "immediate_attention": "🔴 Immediate Attention",
+        "pathologist_review": "🔵 Pathologist Review",
+        "routine": "🟢 Routine",
+    }
+
+    qc_badges = {
+        "imager_qc_review": "🟠 QC Review",
+        "imager_qc_pass": "🟢 QC Pass",
+    }
+
+    age_badges = {
+        "overdue": "🔴 Overdue",
+        "aging": "🟡 Aging",
+        "within_target": "🟢 On Track",
+    }
+
+    display_queue["needs_attention"] = (
+        display_queue["needs_attention"]
+        .map(needs_attention_badges)
+        .fillna(display_queue["needs_attention"].apply(format_workflow_label))
+    )
+
+    display_queue["qc_flag"] = (
+        display_queue["qc_flag"]
+        .map(qc_badges)
+        .fillna(display_queue["qc_flag"].apply(format_workflow_label))
+    )
+
+    display_queue["case_age_flag"] = (
+        display_queue["case_age_flag"]
+        .map(age_badges)
+        .fillna(display_queue["case_age_flag"].apply(format_workflow_label))
+    )
+
+    return display_queue
+
+
+def prepare_display_queue(queue, display_value_columns):
+    """Format raw queue fields for presentation without changing analytics data."""
+    display_queue = add_worklist_badges(queue.copy())
+
+    for column in display_value_columns:
+        if column in display_queue.columns:
+            display_queue[column] = display_queue[column].apply(format_workflow_label)
+
+    renamed_columns = {
+        column: format_column_label(column)
+        for column in display_queue.columns
+    }
+
+    # Use supervisor-friendly labels for fields whose technical names do not
+    # translate cleanly through the generic column formatter.
+    renamed_columns["case_age_flag"] = "Age Status"
+
+    return display_queue.rename(columns=renamed_columns)
+
+
+def highlight_worklist_row(row):
+    """Use restrained row highlighting to show operational urgency."""
+    age_status = str(row.get("Age Status", ""))
+    attention_status = str(row.get("Needs Attention", ""))
+    qc_status = str(row.get("QC Flag", ""))
+    ai_priority = float(row.get("AI Priority Score", 0) or 0)
+
+    if "Overdue" in age_status or "Immediate Attention" in attention_status:
+        return ["background-color: #ffe8e8"] * len(row)
+
+    if ai_priority >= 0.75:
+        return ["background-color: #fff1df"] * len(row)
+
+    if "QC Review" in qc_status:
+        return ["background-color: #fff8d9"] * len(row)
+
+    return [""] * len(row)
+
+
+def calculate_queue_health(filtered_queue):
+    """Summarize worklist condition as an executive-friendly status."""
+    if filtered_queue.empty:
+        return "No Cases", "No cases match the current filters."
+
+    immediate_count = int(
+        (filtered_queue["needs_attention"] == "immediate_attention").sum()
+    )
+    overdue_count = int((filtered_queue["case_age_flag"] == "overdue").sum())
+    high_risk_count = int(
+        (filtered_queue["predictive_priority_flag"] == "high_risk").sum()
+    )
+
+    risk_points = (immediate_count * 2) + (overdue_count * 2) + high_risk_count
+
+    if risk_points >= 8:
+        return "Critical", "Multiple urgent, overdue, or high-risk cases require action."
+    if risk_points >= 3:
+        return "Watch", "The queue contains active workload risks that should be monitored."
+    return "Stable", "The displayed queue is within expected operational limits."
+
+
+def create_case_recommendation(case_record):
+    """Generate a concise, explainable next action for the selected case."""
+    if case_record["case_age_flag"] == "overdue":
+        return "Escalate this case and confirm ownership because turnaround is overdue."
+    if case_record["needs_attention"] == "immediate_attention":
+        return "Move this case to the front of the active review queue."
+    if case_record["qc_flag"] == "imager_qc_review":
+        return "Route this case to imager QC review before downstream completion."
+    if case_record["predictive_priority_flag"] == "high_risk":
+        return "Prioritize review and monitor predictive risk indicators closely."
+    if case_record["needs_attention"] == "pathologist_review":
+        return "Assign the case for pathologist review and monitor turnaround."
+    return "Continue routine workflow processing."
+
+
 st.title("Cytology Workflow Triage Optimizer")
 
 st.markdown(
@@ -35,9 +223,7 @@ st.markdown(
     "turnaround monitoring, and predictive workflow intelligence."
 )
 
-st.caption(
-    f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-)
+st.caption(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.sidebar.title("Operations Center")
 st.sidebar.caption("Workflow Management")
@@ -45,7 +231,7 @@ st.sidebar.divider()
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload Cytology Case CSV",
-    type=["csv"]
+    type=["csv"],
 )
 
 if uploaded_file is not None:
@@ -72,15 +258,13 @@ with st.sidebar.expander("Dataset Preview", expanded=False):
 st.sidebar.success("Dataset Validation Passed")
 
 triage_queue = create_triage_queue(cases)
-
 triage_queue = add_predictive_features(triage_queue)
-
 triage_queue["qc_flag"] = triage_queue.apply(
     lambda row: assign_qc_flag(
         row["blur_score"],
-        row["artifact_risk_score"]
+        row["artifact_risk_score"],
     ),
-    axis=1
+    axis=1,
 )
 
 urgent_cases = get_urgent_cases(triage_queue)
@@ -94,31 +278,48 @@ summary = create_summary_metrics(
 )
 
 workflow_alerts = create_workflow_alerts(summary)
-
 predictive_alerts = create_predictive_alerts(triage_queue)
-
-workflow_recommendations = (
-    create_workflow_recommendations(triage_queue)
-)
-
-forecast_metrics = (
-    create_forecasting_metrics(triage_queue)
-)
-
+workflow_recommendations = create_workflow_recommendations(triage_queue)
+forecast_metrics = create_forecasting_metrics(triage_queue)
 workload_interpretations = interpret_workload(summary)
 
 with st.sidebar:
     st.header("Workflow Summary")
-
     st.write(f"Total Cases: {len(triage_queue)}")
     st.write(f"Urgent Cases: {len(urgent_cases)}")
     st.write(f"Pathologist Review: {len(pathologist_cases)}")
     st.write(f"Imager QC Review: {len(imager_qc_review_cases)}")
     st.write(f"Overdue Cases: {summary['overdue_cases']}")
+    st.divider()
+    st.write("Current Workflow Status")
+
+    for interpretation in workload_interpretations:
+        st.write(f"- {interpretation}")
 
     st.divider()
+    st.subheader("Workflow Filters")
 
-    st.write("Current Workflow Status")
+    workflow_view = st.selectbox(
+        "Select Workflow View",
+        [
+            "All Cases",
+            "Immediate Attention",
+            "Pathologist Review",
+            "Routine",
+            "Overdue Cases",
+            "AI High Risk Cases",
+        ],
+    )
+
+    qc_view = st.selectbox(
+        "Select Imager QC View",
+        [
+            "All Imager QC States",
+            "Imager QC Review",
+            "Imager QC Pass",
+        ],
+    )
+
 
 display_value_columns = [
     "adequacy",
@@ -156,10 +357,8 @@ with overview_tab:
 
         if len(urgent_cases) >= 3:
             st.write("• High urgent case workload")
-
         if summary["overdue_cases"] > 0:
             st.write("• Overdue cases require attention")
-
         if summary["imager_qc_review_cases"] > 5:
             st.write("• Elevated imager QC review workload")
 
@@ -179,7 +378,6 @@ with overview_tab:
 
     st.markdown("**Operations**")
     operations_col1, operations_col2, operations_col3 = st.columns(3)
-
     operations_col1.metric("Total Cases", len(triage_queue))
     operations_col2.metric("Urgent Cases", len(urgent_cases))
     operations_col3.metric("Overdue Cases", summary["overdue_cases"])
@@ -193,37 +391,29 @@ with overview_tab:
             triage_queue[
                 triage_queue["predictive_priority_flag"] == "high_risk"
             ]
-        )
+        ),
     )
-
     ai_col2.metric(
         "Avg Predicted Risk",
-        round(
-            triage_queue["predicted_risk_score"].mean(),
-            2
-        )
+        round(triage_queue["predicted_risk_score"].mean(), 2),
     )
-
     ai_col3.metric(
         "Avg AI Priority Score",
-        round(
-            triage_queue["ai_priority_score"].mean(),
-            2
-        )
+        round(triage_queue["ai_priority_score"].mean(), 2),
     )
 
     st.divider()
     st.subheader("Action Center")
-    st.caption("Operational alerts, predictive risks, and AI recommendations requiring attention.")
+    st.caption(
+        "Operational alerts, predictive risks, and AI recommendations requiring attention."
+    )
 
     st.markdown("### Critical Operational Alerts")
-
     if workflow_alerts:
         for alert in workflow_alerts:
             st.warning(alert)
 
     st.markdown("### Predictive Risks")
-
     if predictive_alerts:
         for alert in predictive_alerts:
             st.warning(alert)
@@ -231,101 +421,24 @@ with overview_tab:
         st.success("No Predictive Alerts")
 
     st.markdown("### Recommended Actions")
-
     if workflow_recommendations:
         for recommendation in workflow_recommendations:
             st.info(recommendation)
     else:
         st.success("No AI Workflow Recommendations")
 
-
-with st.sidebar:
-    for interpretation in workload_interpretations:
-        st.write(f"- {interpretation}")
-
-    st.divider()
-    st.subheader("Workflow Filters")
-
-    workflow_view = st.selectbox(
-        "Select Workflow View",
-        [
-            "All Cases",
-            "Immediate Attention",
-            "Pathologist Review",
-            "Routine",
-            "Overdue Cases",
-            "AI High Risk Cases",
-        ]
-        )
-
-    qc_view = st.selectbox(
-        "Select Imager QC View",
-        [
-            "All Imager QC States",
-            "Imager QC Review",
-            "Imager QC Pass"
-        ]
-    )
-
-def highlight_priority(row):
-    if row["Needs Attention"] == "Immediate Attention":
-        return ["background-color: #ffe6e6"] * len(row)
-
-    if row["Diagnosis"] == "HSIL":
-        return ["background-color: #fff4cc"] * len(row)
-
-    if row["Turnaround Days"] > 5:
-        return ["background-color: #e6f0ff"] * len(row)
-
-    return [""] * len(row)
-
-with overview_tab:  
     st.divider()
     st.subheader("Today's Priority Worklist")
     st.caption("Cases requiring the most immediate operational attention.")
 
-    high_priority_cases = triage_queue[
-        triage_queue["priority"] <= 5
-    ]
-
-    high_priority_display = high_priority_cases.copy()
-
-    high_priority_display["needs_attention"] = (
-        high_priority_display["needs_attention"]
-        .apply(format_workflow_label)
+    high_priority_cases = triage_queue[triage_queue["priority"] <= 5].copy()
+    high_priority_cases = sort_operational_queue(
+        high_priority_cases,
+        "Recommended Priority",
     )
-
-    high_priority_display["qc_flag"] = (
-        high_priority_display["qc_flag"]
-        .apply(format_workflow_label)
-    )
-
-    for column in display_value_columns:
-        high_priority_display[column] = (
-            high_priority_display[column]
-            .apply(format_workflow_label)
-        )
-
-    high_priority_columns = {}
-
-    for column in high_priority_display.columns:
-        high_priority_columns[column] = format_column_label(column)
-
-    high_priority_display = high_priority_display.rename(
-        columns=high_priority_columns
-    )
-
-    high_priority_display = high_priority_display.sort_values(
-        by="Priority"
-    )
-
-    st.caption(
-        f"{len(high_priority_display)} cases currently require priority review."
-    )
-
-    styled_high_priority_display = high_priority_display.style.apply(
-        highlight_priority,
-        axis=1
+    high_priority_display = prepare_display_queue(
+        high_priority_cases,
+        display_value_columns,
     )
 
     priority_worklist_columns = [
@@ -342,64 +455,52 @@ with overview_tab:
         priority_worklist_columns
     ].copy()
 
-    priority_worklist_display["AI Priority Score"] = (
-        priority_worklist_display["AI Priority Score"]
-        .round(2)
+    st.caption(
+        f"{len(priority_worklist_display)} cases currently require priority review."
     )
 
-    priority_worklist_display["Turnaround Days"] = (
-        priority_worklist_display["Turnaround Days"]
-        .astype(str) + " days"
+    st.dataframe(
+        priority_worklist_display.style.format(
+            {
+                "AI Priority Score": "{:.2f}",
+                "Turnaround Days": "{} days",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
     )
-
-    st.dataframe(priority_worklist_display)
 
 with intelligence_tab:
     st.subheader("Workflow Intelligence")
     st.caption("AI-assisted workload interpretation and operational forecasting.")
 
     st.subheader("Workload Interpretation")
-
     for interpretation in workload_interpretations:
         st.info(interpretation)
 
     st.subheader("Operational Forecast")
-
     forecast_col1, forecast_col2, forecast_col3 = st.columns(3)
-
     forecast_col1.metric(
         "Projected High Risk Cases",
-        forecast_metrics["projected_high_risk_cases"]
+        forecast_metrics["projected_high_risk_cases"],
     )
-
     forecast_col2.metric(
         "Projected QC Review Burden",
-        forecast_metrics["projected_qc_review_burden"]
+        forecast_metrics["projected_qc_review_burden"],
     )
-
     forecast_col3.metric(
         "Projected Delay Cases",
-        forecast_metrics["projected_turnaround_delay_cases"]
+        forecast_metrics["projected_turnaround_delay_cases"],
     )
 
 with qc_tab:
     st.subheader("Imager QC Analytics")
-
     qc_col1, qc_col2, qc_col3 = st.columns(3)
-
-    qc_col1.metric(
-        "QC Review Cases",
-        summary["imager_qc_review_cases"]
-    )
-
-    qc_col2.metric(
-        "QC Review %",
-        f"{summary['imager_qc_review_pct']:.1f}%"
-    )
-
+    qc_col1.metric("QC Review Cases", summary["imager_qc_review_cases"])
+    qc_col2.metric("QC Review %", f"{summary['imager_qc_review_pct']:.1f}%")
     qc_col3.metric(
         "Avg Predicted QC Failure",
-        f"{triage_queue['predicted_qc_failure_probability'].mean() * 100:.1f}%"
+        f"{triage_queue['predicted_qc_failure_probability'].mean() * 100:.1f}%",
     )
 
     qc_distribution = (
@@ -407,438 +508,370 @@ with qc_tab:
         .apply(format_workflow_label)
         .value_counts()
     )
-
     st.bar_chart(qc_distribution)
 
 with turnaround_tab:
     st.subheader("Turnaround Analytics")
-
     tat_col1, tat_col2, tat_col3, tat_col4, tat_col5 = st.columns(5)
-
-    tat_col1.metric(
-        "Average Turnaround",
-        summary["average_turnaround_days"]
-    )
-
-    tat_col2.metric(
-        "Longest Turnaround",
-        summary["longest_turnaround_days"]
-    )
-
-    tat_col3.metric(
-        "Overdue Cases",
-        summary["overdue_cases"]
-    )
-
-    tat_col4.metric(
-        "Aging Cases",
-        summary["aging_cases"]
-    )
-
+    tat_col1.metric("Average Turnaround", summary["average_turnaround_days"])
+    tat_col2.metric("Longest Turnaround", summary["longest_turnaround_days"])
+    tat_col3.metric("Overdue Cases", summary["overdue_cases"])
+    tat_col4.metric("Aging Cases", summary["aging_cases"])
     tat_col5.metric(
         "Avg Predicted TAT Risk",
-        f"{triage_queue['predicted_turnaround_risk'].mean() * 100:.1f}%"
+        f"{triage_queue['predicted_turnaround_risk'].mean() * 100:.1f}%",
     )
 
     st.write("Turnaround Time Distribution")
-
     turnaround_distribution = (
         triage_queue["turnaround_days"]
         .value_counts()
         .sort_index()
     )
-
     st.bar_chart(turnaround_distribution)
 
     st.write("Case Aging Distribution")
-
     case_age_distribution = (
         triage_queue["case_age_flag"]
         .apply(format_workflow_label)
         .value_counts()
     )
-
     st.bar_chart(case_age_distribution)
 
 with trend_tab:
     st.subheader("Historical Trend Analytics")
-
     trend_range = st.selectbox(
         "Select Trend Range",
-        [
-            "All Time",
-            "Last 7 Days",
-            "Last 30 Days",
-        ]
+        ["All Time", "Last 7 Days", "Last 30 Days"],
     )
 
     if trend_range == "Last 7 Days":
         filtered_trend_data = trend_data[
             trend_data["date"] >= trend_data["date"].max() - pd.Timedelta(days=7)
         ]
-
     elif trend_range == "Last 30 Days":
         filtered_trend_data = trend_data[
             trend_data["date"] >= trend_data["date"].max() - pd.Timedelta(days=30)
         ]
-
     else:
         filtered_trend_data = trend_data
 
     latest_day = filtered_trend_data.iloc[-1]
     previous_day = filtered_trend_data.iloc[-2]
-
     trend_col1, trend_col2, trend_col3, trend_col4 = st.columns(4)
 
     trend_col1.metric(
         "Total Cases",
         latest_day["total_cases"],
-        latest_day["total_cases"] - previous_day["total_cases"]
+        latest_day["total_cases"] - previous_day["total_cases"],
     )
-
     trend_col2.metric(
         "Urgent Cases",
         latest_day["urgent_cases"],
-        latest_day["urgent_cases"] - previous_day["urgent_cases"]
+        latest_day["urgent_cases"] - previous_day["urgent_cases"],
     )
-
     trend_col3.metric(
         "QC Review Cases",
         latest_day["qc_review_cases"],
-        latest_day["qc_review_cases"] - previous_day["qc_review_cases"]
+        latest_day["qc_review_cases"] - previous_day["qc_review_cases"],
     )
-
     trend_col4.metric(
         "Overdue Cases",
         latest_day["overdue_cases"],
-        latest_day["overdue_cases"] - previous_day["overdue_cases"]
+        latest_day["overdue_cases"] - previous_day["overdue_cases"],
     )
 
     st.write("Daily Total Case Volume")
-
-    st.line_chart(
-        filtered_trend_data,
-        x="date",
-        y="total_cases"
-    )
+    st.line_chart(filtered_trend_data, x="date", y="total_cases")
 
     st.write("Key Operational Trends")
-
     st.line_chart(
         filtered_trend_data,
         x="date",
-        y=[
-            "urgent_cases",
-            "qc_review_cases",
-            "overdue_cases",
-        ]
+        y=["urgent_cases", "qc_review_cases", "overdue_cases"],
     )
 
 with queue_tab:
     st.subheader("Operational Work Queue")
-    st.caption("Filtered case worklist for daily cytology operations.")
-
-    rows_per_page = st.selectbox(
-        "Rows Per Page",
-        [10, 25, 50, 100]
+    st.caption(
+        "Prioritized case worklist for daily cytology operations and supervisory review."
     )
 
-    if workflow_view == "Immediate Attention":
-        filtered_queue = triage_queue[
-            triage_queue["needs_attention"] == "immediate_attention"
-        ]
-
-    elif workflow_view == "Pathologist Review":
-        filtered_queue = triage_queue[
-            triage_queue["needs_attention"] == "pathologist_review"
-        ]
-
-    elif workflow_view == "Routine":
-        filtered_queue = triage_queue[
-            triage_queue["needs_attention"] == "routine"
-        ]
-
-    elif workflow_view == "Overdue Cases":
-        filtered_queue = triage_queue[
-            triage_queue["case_age_flag"] == "overdue"
-        ]
-
-    elif workflow_view == "AI High Risk Cases":
-        filtered_queue = triage_queue[
-            triage_queue["predictive_priority_flag"] == "high_risk"
-        ]
-
-    else:
-        filtered_queue = triage_queue
-
-    if qc_view == "Imager QC Review":
-        filtered_queue = filtered_queue[
-            filtered_queue["qc_flag"] == "imager_qc_review"
-        ]
-
-    elif qc_view == "Imager QC Pass":
-        filtered_queue = filtered_queue[
-            filtered_queue["qc_flag"] == "imager_qc_pass"
-        ]
-
-    display_queue = filtered_queue.copy()
-
-    st.markdown("**Queue Summary**")
-
-    queue_col1, queue_col2, queue_col3 = st.columns(3)
-    queue_col4, queue_col5, queue_col6 = st.columns(3)
-
-    queue_col1.metric(
-        "Displayed Cases",
-        len(filtered_queue)
+    quick_filter = st.radio(
+        "Quick View",
+        [
+            "All Cases",
+            "Immediate Attention",
+            "QC Review",
+            "Overdue",
+            "High AI Risk",
+            "Abnormal",
+        ],
+        horizontal=True,
     )
 
-    queue_col2.metric(
-        "Immediate Attention",
-        len(
-            filtered_queue[
-                filtered_queue["needs_attention"] == "immediate_attention"
-            ]
-        )
-    )
+    control_col1, control_col2, control_col3 = st.columns([2, 2, 1])
 
-    queue_col3.metric(
-        "Pathologist Review",
-        len(
-            filtered_queue[
-                filtered_queue["needs_attention"] == "pathologist_review"
-            ]
-        )
-    )
-
-    queue_col4.metric(
-        "QC Review",
-        len(
-            filtered_queue[
-                filtered_queue["qc_flag"] == "imager_qc_review"
-            ]
-        )
-    )
-
-    queue_col5.metric(
-        "Overdue",
-        len(
-            filtered_queue[
-                filtered_queue["case_age_flag"] == "overdue"
-            ]
-        )
-    )
-
-    average_ai_priority = (
-        round(filtered_queue["ai_priority_score"].mean(), 2)
-        if not filtered_queue.empty
-        else 0.0
-    )
-
-    queue_col6.metric(
-        "Avg AI Priority",
-        average_ai_priority
-    )
-
-    display_queue["needs_attention"] = (
-        display_queue["needs_attention"]
-        .apply(format_workflow_label)
-    )
-
-    display_queue["qc_flag"] = (
-        display_queue["qc_flag"]
-        .apply(format_workflow_label)
-    )
-
-    for column in display_value_columns:
-        display_queue[column] = (
-            display_queue[column]
-            .apply(format_workflow_label)
+    with control_col1:
+        case_search = st.text_input(
+            "Search Case ID",
+            placeholder="Enter a full or partial case ID",
         )
 
-    display_columns = {}
+    with control_col2:
+        sort_option = st.selectbox(
+            "Sort Worklist",
+            [
+                "Recommended Priority",
+                "Highest AI Risk",
+                "Longest Turnaround",
+                "Clinical Priority",
+                "Case ID",
+            ],
+        )
 
-    for column in display_queue.columns:
-        display_columns[column] = format_column_label(column)
+    with control_col3:
+        rows_per_page = st.selectbox(
+            "Rows",
+            [10, 25, 50, 100],
+        )
 
-    display_queue = display_queue.rename(columns=display_columns)
-
-    case_search = st.text_input(
-        "Search Case ID"
+    filtered_queue = filter_operational_queue(
+        triage_queue,
+        workflow_view,
+        qc_view,
+        quick_filter,
     )
 
     if case_search:
-        display_queue = display_queue[
-            display_queue["Case ID"]
-            .str.contains(
-                case_search,
-                case=False
-            )
+        filtered_queue = filtered_queue[
+            filtered_queue["case_id"]
+            .astype(str)
+            .str.contains(case_search, case=False, na=False)
         ]
 
-    if display_queue.empty:
-        st.warning("No Cases Match the Current Filters.")
-        st.stop()
+    filtered_queue = sort_operational_queue(filtered_queue, sort_option)
 
-    selected_case = st.selectbox(
-        "Select Case",
-        display_queue["Case ID"]
+    st.markdown("**Queue Summary**")
+    queue_health, queue_health_message = calculate_queue_health(filtered_queue)
+
+    queue_col1, queue_col2, queue_col3, queue_col4 = st.columns(4)
+    queue_col5, queue_col6, queue_col7, queue_col8 = st.columns(4)
+
+    queue_col1.metric("Displayed Cases", len(filtered_queue))
+    queue_col2.metric(
+        "Immediate Attention",
+        int((filtered_queue["needs_attention"] == "immediate_attention").sum())
+        if not filtered_queue.empty
+        else 0,
+    )
+    queue_col3.metric(
+        "Pathologist Review",
+        int((filtered_queue["needs_attention"] == "pathologist_review").sum())
+        if not filtered_queue.empty
+        else 0,
+    )
+    queue_col4.metric(
+        "QC Review",
+        int((filtered_queue["qc_flag"] == "imager_qc_review").sum())
+        if not filtered_queue.empty
+        else 0,
+    )
+    queue_col5.metric(
+        "Overdue",
+        int((filtered_queue["case_age_flag"] == "overdue").sum())
+        if not filtered_queue.empty
+        else 0,
+    )
+    queue_col6.metric(
+        "High AI Risk",
+        int((filtered_queue["predictive_priority_flag"] == "high_risk").sum())
+        if not filtered_queue.empty
+        else 0,
+    )
+    queue_col7.metric(
+        "Avg Turnaround",
+        f"{safe_mean(filtered_queue, 'turnaround_days'):.1f} days",
+    )
+    queue_col8.metric(
+        "Avg Predicted Risk",
+        f"{safe_mean(filtered_queue, 'predicted_risk_score') * 100:.0f}%",
     )
 
-    st.caption(
-        f"Showing {len(display_queue)} of {len(triage_queue)} Total Cases"
-    )
+    if queue_health == "Critical":
+        st.error(f"Queue Health: {queue_health}. {queue_health_message}")
+    elif queue_health == "Watch":
+        st.warning(f"Queue Health: {queue_health}. {queue_health_message}")
+    elif queue_health == "Stable":
+        st.success(f"Queue Health: {queue_health}. {queue_health_message}")
+    else:
+        st.info(f"Queue Health: {queue_health}. {queue_health_message}")
 
-    display_queue = display_queue.sort_values(
-        by=[
-            "AI Priority Score",
+    if filtered_queue.empty:
+        st.warning("No cases match the current filters.")
+    else:
+        available_columns = {
+            "Case ID": "Case ID",
+            "Priority": "Priority",
+            "Diagnosis": "Diagnosis",
+            "Needs Attention": "Needs Attention",
+            "QC Flag": "QC Flag",
+            "Age Status": "Age Status",
+            "AI Priority Score": "AI Priority Score",
+            "Predicted Risk Score": "Predicted Risk Score",
+            "Turnaround Days": "Turnaround Days",
+            "Adequacy": "Adequacy",
+            "Scan Status": "Scan Status",
+            "Predicted Abnormal Probability": "Predicted Abnormal Probability",
+            "Predicted QC Failure Probability": "Predicted QC Failure Probability",
+            "Predicted Turnaround Risk": "Predicted Turnaround Risk",
+        }
+
+        default_columns = [
+            "Case ID",
             "Priority",
-        ],
-        ascending=[
-            False,
-            True,
+            "Diagnosis",
+            "Needs Attention",
+            "QC Flag",
+            "Age Status",
+            "AI Priority Score",
+            "Predicted Risk Score",
+            "Turnaround Days",
         ]
-    )
 
-    queue_display_columns = [
-        "Case ID",
-        "Priority",
-        "Diagnosis",
-        "Needs Attention",
-        "QC Flag",
-        "AI Priority Score",
-        "Predicted Risk Score",
-        "Turnaround Days",
-    ]
+        with st.expander("Worklist Display Options", expanded=False):
+            selected_columns = st.multiselect(
+                "Choose Worklist Columns",
+                options=list(available_columns.keys()),
+                default=default_columns,
+            )
 
-    paged_display_queue = (
-        display_queue[
-            queue_display_columns
+        if not selected_columns:
+            selected_columns = default_columns
+
+        selected_case_id = st.selectbox(
+            "Select Case for Detailed Review",
+            filtered_queue["case_id"].tolist(),
+        )
+
+        st.caption(
+            f"Showing {min(len(filtered_queue), rows_per_page)} of "
+            f"{len(filtered_queue)} filtered cases, from {len(triage_queue)} total cases."
+        )
+
+        case_record = filtered_queue[
+            filtered_queue["case_id"] == selected_case_id
+        ].iloc[0]
+
+        st.subheader("Selected Case Summary")
+        case_col1, case_col2, case_col3, case_col4 = st.columns(4)
+        case_col1.metric("Case ID", case_record["case_id"])
+        case_col2.metric("Priority", case_record["priority"])
+        case_col3.metric("AI Priority", f"{case_record['ai_priority_score']:.2f}")
+        case_col4.metric(
+            "Predicted Risk",
+            f"{case_record['predicted_risk_score'] * 100:.0f}%",
+        )
+
+        detail_col1, detail_col2 = st.columns(2)
+
+        with detail_col1:
+            st.markdown("**Clinical Information**")
+            st.write(f"**Diagnosis:** {format_workflow_label(case_record['diagnosis'])}")
+            st.write(f"**Adequacy:** {format_workflow_label(case_record['adequacy'])}")
+            st.write(f"**Scan Status:** {format_workflow_label(case_record['scan_status'])}")
+
+        with detail_col2:
+            st.markdown("**Workflow Status**")
+            st.write(
+                f"**Needs Attention:** "
+                f"{format_workflow_label(case_record['needs_attention'])}"
+            )
+            st.write(f"**QC Status:** {format_workflow_label(case_record['qc_flag'])}")
+            st.write(f"**Turnaround:** {case_record['turnaround_days']} days")
+            st.write(f"**Age Status:** {format_workflow_label(case_record['case_age_flag'])}")
+
+        st.markdown("**Predictive Assessment**")
+        risk_col1, risk_col2, risk_col3 = st.columns(3)
+        risk_col1.metric(
+            "Abnormal Probability",
+            f"{case_record['predicted_abnormal_probability'] * 100:.0f}%",
+        )
+        risk_col2.metric(
+            "QC Failure Risk",
+            f"{case_record['predicted_qc_failure_probability'] * 100:.0f}%",
+        )
+        risk_col3.metric(
+            "Turnaround Risk",
+            f"{case_record['predicted_turnaround_risk'] * 100:.0f}%",
+        )
+
+        st.markdown("**Recommended Action**")
+        st.info(create_case_recommendation(case_record))
+
+        st.subheader("Operational Worklist")
+
+        display_queue = prepare_display_queue(
+            filtered_queue,
+            display_value_columns,
+        )
+
+        valid_selected_columns = [
+            column
+            for column in selected_columns
+            if column in display_queue.columns
         ]
-        .head(rows_per_page)
-        .copy()
-    )
 
-    styled_display_queue = (
-        paged_display_queue.style
-        .apply(
-            highlight_priority,
-            axis=1
+        if not valid_selected_columns:
+            valid_selected_columns = [
+                column
+                for column in default_columns
+                if column in display_queue.columns
+            ]
+
+        paged_display_queue = (
+            display_queue[valid_selected_columns]
+            .head(rows_per_page)
+            .copy()
         )
-        .format(
-            {
-                "AI Priority Score": "{:.2f}",
-                "Predicted Risk Score": "{:.2f}",
-                "Turnaround Days": "{} days",
-            }
+
+        formatters = {
+            "AI Priority Score": "{:.2f}",
+            "Predicted Risk Score": "{:.2f}",
+            "Predicted Abnormal Probability": "{:.0%}",
+            "Predicted QC Failure Probability": "{:.0%}",
+            "Predicted Turnaround Risk": "{:.0%}",
+            "Turnaround Days": "{} days",
+        }
+
+        active_formatters = {
+            column: formatter
+            for column, formatter in formatters.items()
+            if column in paged_display_queue.columns
+        }
+
+        styled_display_queue = (
+            paged_display_queue.style
+            .apply(highlight_worklist_row, axis=1)
+            .format(active_formatters)
         )
-    )
 
-    csv_export = display_queue.to_csv(index=False)
+        st.dataframe(
+            styled_display_queue,
+            use_container_width=True,
+            hide_index=True,
+        )
 
-    st.download_button(
-        label="Export Filtered Queue",
-        data=csv_export,
-        file_name=f"{workflow_view.lower().replace(' ', '_')}_workflow_queue.csv",
-        mime="text/csv",
-    )
-
-    st.subheader("Selected Case Summary")
-
-    case_detail = display_queue[
-        display_queue["Case ID"] == selected_case
-    ]
-
-    case_record = case_detail.iloc[0]
-
-    case_col1, case_col2, case_col3, case_col4 = st.columns(4)
-
-    case_col1.metric(
-        "Case ID",
-        case_record["Case ID"]
-    )
-
-    case_col2.metric(
-        "Priority",
-        case_record["Priority"]
-    )
-
-    case_col3.metric(
-        "AI Priority",
-        f"{float(case_record['AI Priority Score']):.2f}"
-    )
-
-    case_col4.metric(
-        "Predicted Risk",
-        f"{float(case_record['Predicted Risk Score']) * 100:.0f}%"
-    )
-
-    st.markdown("**Clinical Information**")
-
-    clinical_col1, clinical_col2, clinical_col3 = st.columns(3)
-
-    clinical_col1.write(
-        f"**Diagnosis:** {case_record.get('Diagnosis', 'Not available')}"
-    )
-
-    clinical_col2.write(
-        f"**Adequacy:** {case_record.get('Adequacy', 'Not available')}"
-    )
-
-    clinical_col3.write(
-        f"**Scan Status:** {case_record.get('Scan Status', 'Not available')}"
-    )
-
-    st.markdown("**Workflow Status**")
-
-    workflow_col1, workflow_col2, workflow_col3 = st.columns(3)
-
-    workflow_col1.write(
-        f"**Needs Attention:** "
-        f"{case_record.get('Needs Attention', 'Not available')}"
-    )
-
-    workflow_col2.write(
-        f"**QC Status:** {case_record.get('QC Flag', 'Not available')}"
-    )
-
-    workflow_col3.write(
-        f"**Turnaround:** "
-        f"{case_record.get('Turnaround Days', 'Not available')} days"
-    )
-
-    st.markdown("**Predictive Assessment**")
-
-    risk_col1, risk_col2, risk_col3 = st.columns(3)
-
-    risk_col1.metric(
-        "Abnormal Probability",
-        f"{float(case_record['Predicted Abnormal Probability']) * 100:.0f}%"
-    )
-
-    risk_col2.metric(
-        "QC Failure Risk",
-        f"{float(case_record['Predicted QC Failure Probability']) * 100:.0f}%"
-    )
-
-    risk_col3.metric(
-        "Turnaround Risk",
-        f"{float(case_record['Predicted Turnaround Risk']) * 100:.0f}%"
-    )
-
-    st.markdown("**Operational Worklist**")
-
-    st.dataframe(
-        styled_display_queue,
-        use_container_width=True
-    )
+        csv_export = display_queue.to_csv(index=False)
+        st.download_button(
+            label="Export Filtered Queue",
+            data=csv_export,
+            file_name=(
+                f"{workflow_view.lower().replace(' ', '_')}_workflow_queue.csv"
+            ),
+            mime="text/csv",
+        )
 
 st.divider()
-
-st.caption(
-    "Cytology Workflow Dashboard v4.0 | Database-Backed Workflow"
-)
-
-st.caption(
-    f"Last Refresh: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-)
+st.caption("Cytology Workflow Dashboard v4.1 | Commercial Worklist Sprint")
+st.caption(f"Last Refresh: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
