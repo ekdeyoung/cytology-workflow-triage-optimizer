@@ -28,7 +28,6 @@ from data_repository import load_cases
 INPUT_FILE = "data/raw/cytology_cases.csv"
 TREND_FILE = "data/raw/cytology_daily_metrics.csv"
 
-
 def initialize_workflow_session():
     """Create temporary demo workflow storage for the current browser session."""
     if "workflow_case_state" not in st.session_state:
@@ -354,6 +353,7 @@ st.sidebar.success("Dataset Validation Passed")
 
 triage_queue = create_triage_queue(cases)
 triage_queue = add_predictive_features(triage_queue)
+
 triage_queue["qc_flag"] = triage_queue.apply(
     lambda row: assign_qc_flag(
         row["blur_score"],
@@ -363,7 +363,10 @@ triage_queue["qc_flag"] = triage_queue.apply(
 )
 
 initialize_workflow_session()
-triage_queue = apply_workflow_session_state(triage_queue)
+
+triage_queue = apply_workflow_session_state(
+    triage_queue
+)
 
 urgent_cases = get_urgent_cases(triage_queue)
 pathologist_cases = get_pathologist_review_cases(triage_queue)
@@ -707,8 +710,19 @@ with queue_tab:
 
     with st.expander("Session Activity Log", expanded=False):
         if st.session_state.workflow_activity_log:
+            activity_log_display = pd.DataFrame(
+                st.session_state.workflow_activity_log
+            ).rename(
+                columns={
+                    "time": "Time",
+                    "case_id": "Case ID",
+                    "action": "Workflow Action",
+                    "assigned_to": "Assigned To",
+                }
+            )
+
             st.dataframe(
-                pd.DataFrame(st.session_state.workflow_activity_log),
+                activity_log_display,
                 use_container_width=True,
                 hide_index=True,
             )
@@ -916,7 +930,13 @@ with queue_tab:
                 f"{format_workflow_label(case_record['needs_attention'])}"
             )
             st.write(f"**QC Status:** {format_workflow_label(case_record['qc_flag'])}")
-            st.write(f"**Turnaround:** {case_record['turnaround_days']} days")
+            turnaround_days = int(case_record["turnaround_days"])
+            turnaround_label = "day" if turnaround_days == 1 else "days"
+
+            st.write(
+                f"**Turnaround:** "
+                f"{turnaround_days} {turnaround_label}"
+            )
             st.write(f"**Age Status:** {format_workflow_label(case_record['case_age_flag'])}")
 
         st.markdown("**Predictive Assessment**")
@@ -945,8 +965,8 @@ with queue_tab:
         current_assignee = case_record.get("assigned_to", "Unassigned")
         reviewer_options = [
             "Unassigned",
-            "Cytotechnologist",
-            "Senior Cytotechnologist",
+            "Cytologist",
+            "Senior Cytologist",
             "Pathologist",
             "QC Specialist",
         ]
@@ -967,7 +987,17 @@ with queue_tab:
         with action_col2:
             st.metric(
                 "Session Status",
-                format_workflow_label(case_record.get("workflow_status", "not_started")),
+                format_workflow_label(
+                    case_record.get(
+                        "workflow_status", 
+                        "not_started"
+                    )
+                ),
+            )
+
+            st.caption(
+                f"Assigned to: "
+                f"{case_record.get('assigned_to', 'Unassigned')}"
             )
 
         button_col1, button_col2, button_col3, button_col4 = st.columns(4)
