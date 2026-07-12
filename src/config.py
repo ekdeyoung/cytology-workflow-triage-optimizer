@@ -5,7 +5,7 @@ WORKFLOW_THRESHOLDS = {
     "urgent_case_pct": 30,
     "abnormal_case_pct": 40,
     "imager_scan_failure_pct": 0.20,
-    "imager_qc_review_pct": 50,
+    "imager_review_pct": 50,
 }
 
 
@@ -39,8 +39,10 @@ DIAGNOSIS_REASON_MAP = {
     "normal": "Routine Normal Case",
 }
 
-
-# Workflow State Definitions
+# Legacy Operational Triage States
+#
+# These states support the current v4 dashboard and should not be used
+# as the final clinical workflow-routing model.
 
 WORKFLOW_STATES = {
     "immediate_attention": "immediate_attention",
@@ -69,6 +71,172 @@ PRIORITY_TO_ATTENTION_STATE = {
     99: ROUTINE,
 }
 
+# Cytology Specimen Categories
+
+SPECIMEN_CATEGORIES = {
+    "gynecologic": "gynecologic",
+    "non_gynecologic": "non_gynecologic",
+}
+
+
+# Cytology Workflow Types
+
+WORKFLOW_TYPES = {
+    "routine": "routine",
+    "rose": "rose",
+}
+
+GYNECOLOGIC = SPECIMEN_CATEGORIES["gynecologic"]
+NON_GYNECOLOGIC = SPECIMEN_CATEGORIES["non_gynecologic"]
+
+ROUTINE_WORKFLOW = WORKFLOW_TYPES["routine"]
+ROSE_WORKFLOW = WORKFLOW_TYPES["rose"]
+
+
+# Cytology Workflow Stages
+
+WORKFLOW_STAGES = {
+    "specimen_received": "specimen_received",
+    "slide_preparation": "slide_preparation",
+    "digital_imaging": "digital_imaging",
+    "imager_review": "imager_review",
+    "rose_procedure": "rose_procedure",
+    "rose_adequacy_assessment": "rose_adequacy_assessment",
+    "laboratory_processing": "laboratory_processing",
+    "primary_cytologist_screening": "primary_cytologist_screening",
+    "quality_control_review": "quality_control_review",
+    "pathologist_review": "pathologist_review",
+    "final_sign_out": "final_sign_out",
+    "concordance_analysis": "concordance_analysis",
+    "educational_review": "educational_review",
+}
+
+
+# General Workflow Statuses
+
+WORKFLOW_STATUS = {
+    "not_started": "not_started",
+    "pending": "pending",
+    "in_progress": "in_progress",
+    "ready": "ready",
+    "completed": "completed",
+    "on_hold": "on_hold",
+    "cancelled": "cancelled",
+}
+
+
+# Laboratory Processing Statuses
+
+PROCESSING_STATUS = {
+    "not_started": "not_started",
+    "in_progress": "in_progress",
+    "ready_for_screening": "ready_for_screening",
+    "delayed": "delayed",
+    "completed": "completed",
+}
+
+
+# Review Roles
+
+WORKFLOW_ROLES = {
+    "performing_rose_cytologist": "performing_rose_cytologist",
+    "primary_cytologist": "primary_cytologist",
+    "quality_control_reviewer": "quality_control_reviewer",
+    "pathologist": "pathologist",
+    "laboratory_processing": "laboratory_processing",
+    "supervisor": "supervisor",
+}
+
+# Clinical Routing Rules
+
+CLINICAL_ROUTING_CONFIG = {
+    "gynecologic_negative": {
+        "requires_primary_cytologist_screening": True,
+        "eligible_for_quality_control_review": True,
+        "quality_control_selection_pct": 10,
+        "requires_pathologist_review": False,
+        "cytologist_sign_out_allowed": True,
+    },
+    "gynecologic_abnormal": {
+        "requires_primary_cytologist_screening": True,
+        "eligible_for_quality_control_review": False,
+        "requires_pathologist_review": True,
+        "cytologist_sign_out_allowed": False,
+    },
+    "non_gynecologic": {
+        "requires_primary_cytologist_screening": True,
+        "eligible_for_quality_control_review": False,
+        "requires_pathologist_review": True,
+        "cytologist_sign_out_allowed": False,
+    },
+    "rose": {
+        "requires_rose_cytologist": True,
+        "requires_adequacy_assessment": True,
+        "requires_laboratory_processing": True,
+        "requires_primary_cytologist_screening": True,
+        "requires_pathologist_review": True,
+        "requires_concordance_analysis": True,
+    },
+}
+
+WORKFLOW_CAPABILITIES = {
+    "digital_imaging_enabled": True,
+    "imager_review_enabled": True,
+}
+
+# Canonical Workflow Templates
+
+WORKFLOW_TEMPLATES = {
+    "gynecologic_routine": [
+        WORKFLOW_STAGES["specimen_received"],
+        WORKFLOW_STAGES["slide_preparation"],
+        WORKFLOW_STAGES["digital_imaging"],
+        WORKFLOW_STAGES["imager_review"],
+        WORKFLOW_STAGES["primary_cytologist_screening"],
+    ],
+    "non_gynecologic_routine": [
+        WORKFLOW_STAGES["specimen_received"],
+        WORKFLOW_STAGES["slide_preparation"],
+        WORKFLOW_STAGES["digital_imaging"],
+        WORKFLOW_STAGES["imager_review"],
+        WORKFLOW_STAGES["primary_cytologist_screening"],
+        WORKFLOW_STAGES["pathologist_review"],
+        WORKFLOW_STAGES["final_sign_out"],
+    ],
+    "rose": [
+        WORKFLOW_STAGES["rose_procedure"],
+        WORKFLOW_STAGES["rose_adequacy_assessment"],
+        WORKFLOW_STAGES["laboratory_processing"],
+        WORKFLOW_STAGES["primary_cytologist_screening"],
+        WORKFLOW_STAGES["pathologist_review"],
+        WORKFLOW_STAGES["final_sign_out"],
+        WORKFLOW_STAGES["concordance_analysis"],
+    ],
+}
+
+GYNECOLOGIC_POST_SCREENING_ROUTES = {
+    "negative_not_selected_for_qc": [
+        WORKFLOW_STAGES["final_sign_out"],
+    ],
+    "negative_selected_for_qc": [
+        WORKFLOW_STAGES["quality_control_review"],
+        WORKFLOW_STAGES["final_sign_out"],
+    ],
+    "abnormal_or_questionable": [
+        WORKFLOW_STAGES["pathologist_review"],
+        WORKFLOW_STAGES["final_sign_out"],
+    ],
+}
+
+QUALITY_FOLLOW_UP_ROUTES = {
+    "concordant": [],
+    "discordant": [
+        WORKFLOW_STAGES["educational_review"],
+    ],
+    "teaching_case": [
+        WORKFLOW_STAGES["educational_review"],
+    ],
+}
 
 # QC Workflow Configuration
 
@@ -82,6 +250,15 @@ QC_WORKFLOW_CONFIG = {
     ],
 }
 
+IMAGER_REVIEW_CONFIG = QC_WORKFLOW_CONFIG
+
+QUALITY_CONTROL_REVIEW_CONFIG = {
+    "selection_pct": 10,
+    "eligible_specimen_category": GYNECOLOGIC,
+    "eligible_screening_result": "negative",
+    "review_state": "quality_control_review",
+    "completed_state": "quality_control_completed",
+}
 
 # ML Workflow Configuration
 

@@ -54,7 +54,7 @@ def assign_priority_reason(adequacy, scan_status, diagnosis):
         return "Low Cellularity"
     
     elif scan_status.lower() in ["fail", "failed"]:
-        return "Scan Failure"
+        return "Imager Scan Failure"
 
     return DIAGNOSIS_REASON_MAP.get(
         diagnosis.lower(), 
@@ -167,7 +167,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     imager_qc_review_cases = triage_queue[
         triage_queue["qc_flag"] == QC_WORKFLOW_CONFIG["review_state"]
     ]
-    imager_qc_review_pct = len(imager_qc_review_cases) / total_cases * 100
+    imager_review_pct = len(imager_qc_review_cases) / total_cases * 100
 
     return {
         "total_cases": total_cases,
@@ -189,7 +189,7 @@ def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
             triage_queue["turnaround_days"] > WORKFLOW_THRESHOLDS["turnaround_days"]
         ).sum(), 
         "imager_qc_review_cases": len(imager_qc_review_cases),
-        "imager_qc_review_pct": imager_qc_review_pct,
+        "imager_review_pct": imager_review_pct,
         "overdue_cases": len(overdue_cases),
         "aging_cases": len(aging_cases),
     }
@@ -277,7 +277,7 @@ def interpret_workload(summary):
     if summary["cases_over_threshold"] > 0:
         interpretations.append("Delayed Turnaround Time Cases Present")
 
-    if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
+    if summary["imager_review_pct"] >= WORKFLOW_THRESHOLDS["imager_review_pct"]:
         interpretations.append("Elevated Imager QC Review Burden")
     
     if summary["overdue_cases"] > 0:
@@ -305,7 +305,7 @@ def create_workflow_alerts(summary):
     if summary["cases_over_threshold"] > 0:
         alerts.append("Cases Exceeding Turnaround Time Threshold Detected")
 
-    if summary["imager_qc_review_pct"] >= WORKFLOW_THRESHOLDS["imager_qc_review_pct"]:
+    if summary["imager_review_pct"] >= WORKFLOW_THRESHOLDS["imager_review_pct"]:
         alerts.append("High Imager QC Review Volume Detected")
 
     if summary["overdue_cases"] > 0:
