@@ -311,9 +311,9 @@ def create_case_recommendation(case_record):
 
 def create_daily_operations_report(
     queue,
-    summary,
     session_statistics,
     queue_health,
+    queue_health_message,
     supervisor_notes,
 ):
     """Create a downloadable plain-text daily operations report."""
@@ -355,6 +355,21 @@ def create_daily_operations_report(
         else "No supervisor notes entered."
     )
 
+    if queue_health == "Critical":
+        recommended_action = (
+            "Prioritize immediate-attention and overdue cases, confirm ownership "
+            "of high-risk work, and monitor QC review capacity throughout the shift."
+        )
+    elif queue_health == "Watch":
+        recommended_action = (
+            "Review active workload risks, monitor turnaround performance, "
+            "and confirm coverage for QC and pathologist review."
+        )
+    else:
+        recommended_action = (
+            "Continue routine workflow monitoring and maintain current staffing coverage."
+        )
+
     return f"""
 CYTOLOGY DAILY OPERATIONS REPORT
 
@@ -372,7 +387,7 @@ High AI Risk Cases: {high_ai_risk_cases}
 Average Turnaround: {average_turnaround:.1f} days
 Average Predicted Risk: {average_predicted_risk:.0f}%
 Queue Health: {queue_health}
-Queue Health Interpretation: {calculate_queue_health(queue)[1]}
+Queue Health Interpretation: {queue_health_message}
 
 SESSION WORKFLOW ACTIVITY
 
@@ -384,7 +399,7 @@ Recorded Actions: {session_statistics["actions"]}
 
 RECOMMENDED OPERATIONAL ACTION
 
-Prioritize immediate-attention and overdue cases, confirm ownership of high-risk work, and monitor QC review capacity throughout the shift.
+{recommended_action}
 
 SUPERVISOR NOTES
 
@@ -1401,9 +1416,9 @@ with reports_tab:
 
     daily_operations_report = create_daily_operations_report(
         queue=triage_queue,
-        summary=summary,
         session_statistics=report_session_statistics,
         queue_health=report_queue_health,
+        queue_health_message=report_queue_health_message,
         supervisor_notes=supervisor_notes,
     )
 
