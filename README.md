@@ -4,6 +4,10 @@ A Python and Streamlit application that simulates a digital cytology workflow an
 
 The project was developed as a digital pathology and healthcare analytics platform that models real-world cytology laboratory workflows, including case triage, quality control review, pathologist review prioritization, turnaround monitoring, predictive risk assessment, and workflow optimization.
 
+## Development Context
+
+Before modifying this project, read [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md). It contains the authoritative product scope, clinical terminology, workflow decisions, and development guardrails.
+
 ## Technologies
 
 - Python
