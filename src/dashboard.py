@@ -358,11 +358,8 @@ def create_daily_operations_report(
     return f"""
 CYTOLOGY DAILY OPERATIONS REPORT
 
-Report Date:
-{datetime.now().strftime("%B %d, %Y")}
-
-Report Time:
-{datetime.now().strftime("%I:%M %p")}
+Report Generated:
+{datetime.now().strftime("%B %d, %Y at %I:%M %p")}
 
 OPERATIONAL SNAPSHOT
 
@@ -375,6 +372,7 @@ High AI Risk Cases: {high_ai_risk_cases}
 Average Turnaround: {average_turnaround:.1f} days
 Average Predicted Risk: {average_predicted_risk:.0f}%
 Queue Health: {queue_health}
+Queue Health Interpretation: {calculate_queue_health(queue)[1]}
 
 SESSION WORKFLOW ACTIVITY
 
@@ -383,6 +381,10 @@ Cases in QC Review: {session_statistics["qc_review"]}
 Reviewed Cases: {session_statistics["reviewed"]}
 Completed Cases: {session_statistics["completed"]}
 Recorded Actions: {session_statistics["actions"]}
+
+RECOMMENDED OPERATIONAL ACTION
+
+Prioritize immediate-attention and overdue cases, confirm ownership of high-risk work, and monitor QC review capacity throughout the shift.
 
 SUPERVISOR NOTES
 
