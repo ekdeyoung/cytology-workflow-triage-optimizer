@@ -1,5 +1,7 @@
 # Cytology Workflow Triage Optimizer
 
+> For the current implementation checkpoint and immediate development task, also read [`CURRENT_WORK.md`](CURRENT_WORK.md).
+
 ## Project Context and Development Guardrails
 
 This document is the authoritative source of truth for the Cytology Workflow Triage Optimizer project.
