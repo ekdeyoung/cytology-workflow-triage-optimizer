@@ -68,53 +68,95 @@ def assign_attention_flag(priority):
 def assign_case_age_flag(turnaround_days):
     if turnaround_days > 7:
         return "overdue"
-    elif turnaround_days > 5:
+    if turnaround_days > 5:
         return "aging"
-    else:
-        return "on_track"
+    return "within_target"
 
 def create_triage_queue(df):
-    df["received_date"] = pd.to_datetime(df["received_date"])
-    df["reported_date"] = pd.to_datetime(df["reported_date"])
+    triage_queue = df.copy()
 
-    df["turnaround_days"] = (
-        df["reported_date"] - df["received_date"]
+    triage_queue["received_date"] = pd.to_datetime(
+        triage_queue["received_date"]
+    )
+
+    triage_queue["reported_date"] = pd.to_datetime(
+        triage_queue["reported_date"]
+    )
+
+    triage_queue["turnaround_days"] = (
+        triage_queue["reported_date"]
+        - triage_queue["received_date"]
     ).dt.days
 
-    df["case_age_flag"] = df["turnaround_days"].apply(assign_case_age_flag)
-
-    df["priority"] = df.apply(
-        lambda row: assign_priority(
-            row["adequacy"], 
-            row["scan_status"], 
-            row["diagnosis"]
-        ), 
-        axis=1
-    
+    triage_queue["case_age_flag"] = (
+        triage_queue["turnaround_days"]
+        .apply(assign_case_age_flag)
     )
-    df["priority_reason"] = df.apply(
+
+    triage_queue["priority"] = triage_queue.apply(
+        lambda row: assign_priority(
+            row["adequacy"],
+            row["scan_status"],
+            row["diagnosis"],
+        ),
+        axis=1,
+    )
+
+    triage_queue["priority_reason"] = triage_queue.apply(
         lambda row: assign_priority_reason(
             row["adequacy"],
             row["scan_status"],
-            row["diagnosis"]
+            row["diagnosis"],
         ),
-        axis=1
+        axis=1,
     )
 
-    df["needs_attention"] = df["priority"].apply(assign_attention_flag)
+    triage_queue["needs_attention"] = (
+        triage_queue["priority"]
+        .apply(assign_attention_flag)
+    )
 
-    df = df.sort_values("priority")
-    df = df.reset_index(drop=True)
+    triage_queue = (
+        triage_queue
+        .sort_values("priority")
+        .reset_index(drop=True)
+    )
 
-    return df
+    return triage_queue
 
 def create_summary_metrics(triage_queue, urgent_cases, pathologist_cases):
     total_cases = len(triage_queue)
 
-    abnormal_cases = triage_queue[triage_queue["diagnosis"] != "normal"]
-    imager_scan_failures = triage_queue[triage_queue["scan_status"] == "fail"]
-    unsat_cases = triage_queue[triage_queue["adequacy"] == "unsat"]
-    
+    diagnosis_values = (
+        triage_queue["diagnosis"]
+        .astype(str)
+        .str.lower()
+    )
+
+    scan_status_values = (
+        triage_queue["scan_status"]
+        .astype(str)
+        .str.lower()
+    )
+
+    adequacy_values = (
+        triage_queue["adequacy"]
+        .astype(str)
+        .str.lower()
+    )
+
+    abnormal_cases = triage_queue[
+        diagnosis_values != "normal"
+    ]
+
+    imager_scan_failures = triage_queue[
+        scan_status_values.isin(["fail", "failed"])
+    ]
+
+    unsat_cases = triage_queue[
+        adequacy_values.isin(["unsat", "unsatisfactory"])
+    ]
+
     overdue_cases = triage_queue[triage_queue["case_age_flag"] == "overdue"]
     aging_cases = triage_queue[triage_queue["case_age_flag"] == "aging"]
 
@@ -173,8 +215,8 @@ def validate_case_data(df):
     allowed_diagnosis = ["normal", "infection", "ascus", "lsil", "hsil"]
 
     for value in df["adequacy"]:
-            if value.lower() not in allowed_adequacy:
-                raise ValueError(f"Unexpected Adequacy Value: {value}")
+        if value.lower() not in allowed_adequacy:
+            raise ValueError(f"Unexpected Adequacy Value: {value}")
 
     for value in df["scan_status"]:
         if value.lower() not in allowed_scan_status:
@@ -187,13 +229,34 @@ def validate_case_data(df):
     return True
 
 def get_urgent_cases(df):
-    return df[df["needs_attention"] == IMMEDIATE_ATTENTION]
+    return df[
+        df["needs_attention"] == IMMEDIATE_ATTENTION
+    ].copy()
+
+def get_priority_review_cases(df):
+    """
+    Return cases placed in the legacy review-priority category.
+
+    This is an operational triage category, not a definitive clinical
+    pathologist-routing decision.
+    """
+    return df[
+        df["needs_attention"] == PATHOLOGIST_REVIEW
+    ].copy()
 
 def get_pathologist_review_cases(df):
-    return df[df["needs_attention"] == PATHOLOGIST_REVIEW]
+    """
+    Temporary compatibility wrapper for the existing dashboard.
+
+    The returned cases represent the legacy review-priority category,
+    not final specimen-specific pathologist routing.
+    """
+    return get_priority_review_cases(df)
 
 def get_imager_qc_review_cases(df):
-    return df[df["qc_flag"] == QC_WORKFLOW_CONFIG["review_state"]]
+    return df[
+        df["qc_flag"] == QC_WORKFLOW_CONFIG["review_state"]
+    ].copy()
 
 def interpret_workload(summary):
 
