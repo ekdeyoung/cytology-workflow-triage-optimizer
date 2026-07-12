@@ -99,7 +99,7 @@ def create_workflow_recommendations(cases):
 
     if cases["predicted_qc_failure_probability"].mean() >= 0.50:
         recommendations.append(
-            "Consider prioritizing imager QC review workload."
+            "Consider prioritizing imager review workload."
         )
 
     if cases["predicted_turnaround_risk"].mean() >= 0.40:

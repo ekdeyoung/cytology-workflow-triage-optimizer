@@ -278,7 +278,7 @@ def interpret_workload(summary):
         interpretations.append("Delayed Turnaround Time Cases Present")
 
     if summary["imager_review_pct"] >= WORKFLOW_THRESHOLDS["imager_review_pct"]:
-        interpretations.append("Elevated Imager QC Review Burden")
+        interpretations.append("Elevated Imager Review Burden")
     
     if summary["overdue_cases"] > 0:
         interpretations.append("Overdue Case Backlog Present")
@@ -306,7 +306,7 @@ def create_workflow_alerts(summary):
         alerts.append("Cases Exceeding Turnaround Time Threshold Detected")
 
     if summary["imager_review_pct"] >= WORKFLOW_THRESHOLDS["imager_review_pct"]:
-        alerts.append("High Imager QC Review Volume Detected")
+        alerts.append("High Imager Review Volume Detected")
 
     if summary["overdue_cases"] > 0:
         alerts.append("Overdue Cases Require Review")

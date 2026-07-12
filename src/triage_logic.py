@@ -192,10 +192,10 @@ with open(
 
     file.write("\nIMAGER QC METRICS\n")
     file.write(
-        f"Imager QC Review Cases: "
+        f"Imager Review Cases: "
         f"{summary['imager_qc_review_cases']}\n"
     )
-    file.write(f"Imager QC Review %: {summary['imager_qc_review_pct']:.1f}%\n")
+    file.write(f"Imager Review %: {summary['imager_review_pct']:.1f}%\n")
     
     file.write("\nQC FLAG BREAKDOWN\n")
 
@@ -259,8 +259,8 @@ print(
     f"Cases Over {WORKFLOW_THRESHOLDS['turnaround_days']} Days: "
     f"{summary['cases_over_threshold']}"
 )
-print(f"Imager QC Review Cases: {summary['imager_qc_review_cases']}")
-print(f"Imager QC Review %: {summary['imager_qc_review_pct']:.1f}%")
+print(f"Imager Review Cases: {summary['imager_qc_review_cases']}")
+print(f"Imager Review %: {summary['imager_review_pct']:.1f}%")
 
 ai_workflow_components = summarize_ai_workflow_components()
 
@@ -270,7 +270,7 @@ logging.info(
 )
 
 logging.info(
-    f"QC Review Cases Identified: "
+    f"Imager Review Cases Identified: "
     f"{summary['imager_qc_review_cases']}"
 )
 
@@ -279,7 +279,7 @@ logging.info(
 )
 
 logging.info(
-    f"QC Flag Reporting Order: {QC_FLAG_ORDER}"
+    f"Imager Review Flag Order: {QC_FLAG_ORDER}"
 )
 
 logging.info(

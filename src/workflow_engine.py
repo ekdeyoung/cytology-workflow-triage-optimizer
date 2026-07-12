@@ -1,3 +1,5 @@
+import pandas as pd
+
 from config import (
     GYNECOLOGIC,
     NON_GYNECOLOGIC,
@@ -193,6 +195,91 @@ def describe_next_required_action(next_stage):
         next_stage,
         "Complete the next required workflow stage.",
     )
+
+def add_workflow_metadata(cases):
+    """
+    Add workflow path, next stage, and next required action to case data.
+    """
+
+    workflow_cases = cases.copy()
+
+    required_columns = {
+        "specimen_category",
+        "workflow_type",
+        "current_stage",
+        "screening_result",
+        "selected_for_quality_control",
+        "discrepancy_review_status",
+    }
+
+    missing_columns = required_columns - set(workflow_cases.columns)
+
+    if missing_columns:
+        raise ValueError(
+            "Missing workflow columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    workflow_paths = []
+    next_stages = []
+    next_actions = []
+
+    for _, case in workflow_cases.iterrows():
+        screening_result = case.get("screening_result")
+
+        if pd.isna(screening_result) or str(screening_result).strip() == "":
+            screening_result = None
+
+        discrepancy_review = case.get(
+            "discrepancy_review_status"
+        )
+
+        if (
+            pd.isna(discrepancy_review)
+            or str(discrepancy_review).strip() == ""
+            or discrepancy_review == "no_discrepancy"
+        ):
+            discrepancy_review = None
+
+        selected_for_quality_control = case.get(
+            "selected_for_quality_control",
+            False,
+        )
+
+        if pd.isna(selected_for_quality_control):
+            selected_for_quality_control = False
+
+        workflow_path = build_case_workflow(
+            specimen_category=case["specimen_category"],
+            workflow_type=case["workflow_type"],
+            screening_result=screening_result,
+            selected_for_quality_control=bool(
+                selected_for_quality_control
+            ),
+            discrepancy_review=discrepancy_review,
+        )
+
+        current_stage = case.get("current_stage")
+
+        if pd.isna(current_stage) or str(current_stage).strip() == "":
+            current_stage = None
+
+        next_stage = get_next_workflow_stage(
+            workflow_stages=workflow_path,
+            current_stage=current_stage,
+        )
+
+        workflow_paths.append(workflow_path)
+        next_stages.append(next_stage)
+        next_actions.append(
+            describe_next_required_action(next_stage)
+        )
+
+    workflow_cases["workflow_path"] = workflow_paths
+    workflow_cases["next_stage"] = next_stages
+    workflow_cases["next_required_action"] = next_actions
+
+    return workflow_cases
 
 if __name__ == "__main__":
     test_workflow = build_case_workflow(

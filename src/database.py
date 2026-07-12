@@ -20,6 +20,34 @@ def get_database_connection():
 
     return connection
 
+def add_missing_case_columns(connection):
+    """Add workflow columns to an existing cases table without deleting data."""
+
+    existing_columns = {
+        row[1]
+        for row in connection.execute(
+            "PRAGMA table_info(cases)"
+        ).fetchall()
+    }
+
+    workflow_columns = {
+        "specimen_category": "TEXT DEFAULT 'gynecologic'",
+        "workflow_type": "TEXT DEFAULT 'routine'",
+        "current_stage": "TEXT DEFAULT 'digital_imaging'",
+        "screening_result": "TEXT",
+        "selected_for_quality_control": "INTEGER DEFAULT 0",
+        "discrepancy_review_status": "TEXT DEFAULT 'no_discrepancy'",
+    }
+
+    for column_name, column_definition in workflow_columns.items():
+        if column_name not in existing_columns:
+            connection.execute(
+                f"""
+                ALTER TABLE cases
+                ADD COLUMN {column_name} {column_definition}
+                """
+            )
+
 def ensure_case_columns(connection):
     """Add missing legacy case columns without deleting existing data."""
 
@@ -189,6 +217,8 @@ def initialize_database():
         )
         """
     )
+
+    add_missing_case_columns(connection)
 
     connection.commit()
     connection.close()

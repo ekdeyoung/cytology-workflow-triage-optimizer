@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from workflow_engine import add_workflow_metadata
 
 from triage_utils import (
     create_triage_queue,
     get_urgent_cases,
-    get_pathologist_review_cases,
+    get_priority_review_cases,
     get_imager_qc_review_cases,
     format_workflow_label,
     format_column_label,
@@ -102,7 +103,7 @@ def filter_operational_queue(queue, workflow_view, qc_view, quick_filter):
 
     workflow_filters = {
         "Immediate Attention": filtered_queue["needs_attention"] == "immediate_attention",
-        "Pathologist Review": filtered_queue["needs_attention"] == "pathologist_review",
+        "Priority Review": filtered_queue["needs_attention"] == "pathologist_review",
         "Routine": filtered_queue["needs_attention"] == "routine",
         "Overdue Cases": filtered_queue["case_age_flag"] == "overdue",
         "AI High Risk Cases": filtered_queue["predictive_priority_flag"] == "high_risk",
@@ -111,21 +112,26 @@ def filter_operational_queue(queue, workflow_view, qc_view, quick_filter):
     if workflow_view in workflow_filters:
         filtered_queue = filtered_queue[workflow_filters[workflow_view]]
 
-    if qc_view == "Imager QC Review":
+    if qc_view == "Imager Review Required":
         filtered_queue = filtered_queue[
             filtered_queue["qc_flag"] == "imager_qc_review"
         ]
-    elif qc_view == "Imager QC Pass":
+    elif qc_view == "Imager Review Passed":
         filtered_queue = filtered_queue[
             filtered_queue["qc_flag"] == "imager_qc_pass"
         ]
 
     quick_filters = {
         "Immediate Attention": filtered_queue["needs_attention"] == "immediate_attention",
-        "QC Review": filtered_queue["qc_flag"] == "imager_qc_review",
+        "Imager Review": filtered_queue["qc_flag"] == "imager_qc_review",
         "Overdue": filtered_queue["case_age_flag"] == "overdue",
         "High AI Risk": filtered_queue["predictive_priority_flag"] == "high_risk",
-        "Abnormal": filtered_queue["diagnosis"].isin(["ASC-US", "LSIL", "ASC-H", "HSIL", "AGC"]),
+        "Abnormal": (
+            filtered_queue["diagnosis"]
+            .astype(str)
+            .str.lower()
+            .isin(["ascus", "lsil", "asc-h", "hsil", "agc"])
+        ),
     }
 
     if quick_filter in quick_filters:
@@ -181,13 +187,13 @@ def add_worklist_badges(display_queue):
     """Add compact visual status cues while preserving the source data."""
     needs_attention_badges = {
         "immediate_attention": "🔴 Immediate Attention",
-        "pathologist_review": "🔵 Pathologist Review",
+        "pathologist_review": "🔵 Priority Review",
         "routine": "🟢 Routine",
     }
 
     qc_badges = {
-        "imager_qc_review": "🟠 QC Review",
-        "imager_qc_pass": "🟢 QC Pass",
+        "imager_qc_review": "🟠 Imager Review Required",
+        "imager_qc_pass": "🟢 Imager Review Passed",
     }
 
     age_badges = {
@@ -218,7 +224,7 @@ def add_worklist_badges(display_queue):
         workflow_badges = {
             "not_started": "⚪ Not Started",
             "assigned": "🔵 Assigned",
-            "qc_review": "🟠 In QC Review",
+            "qc_review": "🟠 In Imager Review",
             "reviewed": "🟣 Reviewed",
             "completed": "🟢 Completed",
         }
@@ -244,12 +250,23 @@ def prepare_display_queue(queue, display_value_columns):
         for column in display_queue.columns
     }
 
+    renamed_columns[
+        "predicted_qc_failure_probability"
+    ] = "Predicted Imager Failure Probability"
+
+    renamed_columns["qc_flag"] = "Imager Review Status"
+
     # Use supervisor-friendly labels for fields whose technical names do not
     # translate cleanly through the generic column formatter.
     renamed_columns["case_age_flag"] = "Age Status"
     renamed_columns["assigned_to"] = "Assigned To"
     renamed_columns["workflow_status"] = "Workflow Status"
     renamed_columns["last_action"] = "Last Session Action"
+    renamed_columns["specimen_category"] = "Specimen Category"
+    renamed_columns["workflow_type"] = "Workflow Type"
+    renamed_columns["current_stage"] = "Current Stage"
+    renamed_columns["next_stage"] = "Next Stage"
+    renamed_columns["next_required_action"] = "Next Required Action"
 
     return display_queue.rename(columns=renamed_columns)
 
@@ -258,7 +275,7 @@ def highlight_worklist_row(row):
     """Use restrained row highlighting to show operational urgency."""
     age_status = str(row.get("Age Status", ""))
     attention_status = str(row.get("Needs Attention", ""))
-    qc_status = str(row.get("QC Flag", ""))
+    qc_status = str(row.get("Imager Review Status", ""))
     ai_priority = float(row.get("AI Priority Score", 0) or 0)
 
     if "Overdue" in age_status or "Immediate Attention" in attention_status:
@@ -267,7 +284,7 @@ def highlight_worklist_row(row):
     if ai_priority >= 0.75:
         return ["background-color: #fff1df"] * len(row)
 
-    if "QC Review" in qc_status:
+    if "Imager Review Required" in qc_status:
         return ["background-color: #fff8d9"] * len(row)
 
     return [""] * len(row)
@@ -302,7 +319,7 @@ def create_case_recommendation(case_record):
     if case_record["needs_attention"] == "immediate_attention":
         return "Move this case to the front of the active review queue."
     if case_record["qc_flag"] == "imager_qc_review":
-        return "Route this case to imager QC review before downstream completion."
+        return "Route this case to Imager Review before primary cytologist screening."
     if case_record["predictive_priority_flag"] == "high_risk":
         return "Prioritize review and monitor predictive risk indicators closely."
     if case_record["needs_attention"] == "pathologist_review":
@@ -329,7 +346,7 @@ def create_daily_operations_report(
         (queue["needs_attention"] == "pathologist_review").sum()
     )
 
-    qc_review_cases = int(
+    imager_review_cases = int(
         (queue["qc_flag"] == "imager_qc_review").sum()
     )
 
@@ -359,12 +376,12 @@ def create_daily_operations_report(
     if queue_health == "Critical":
         recommended_action = (
             "Prioritize immediate-attention and overdue cases, confirm ownership "
-            "of high-risk work, and monitor QC review capacity throughout the shift."
+            "of high-risk work, and monitor Imager Review capacity throughout the shift."
         )
     elif queue_health == "Watch":
         recommended_action = (
             "Review active workload risks, monitor turnaround performance, "
-            "and confirm coverage for QC and pathologist review."
+            "and confirm coverage for Imager Review and pathologist review."
         )
     else:
         recommended_action = (
@@ -382,7 +399,7 @@ OPERATIONAL SNAPSHOT
 Total Cases: {total_cases}
 Immediate Attention: {urgent_cases}
 Pathologist Review: {pathologist_review_cases}
-QC Review: {qc_review_cases}
+Imager Review: {imager_review_cases}
 Overdue Cases: {overdue_cases}
 High AI Risk Cases: {high_ai_risk_cases}
 Average Turnaround: {average_turnaround:.1f} days
@@ -393,7 +410,7 @@ Queue Health Interpretation: {queue_health_message}
 SESSION WORKFLOW ACTIVITY
 
 Assigned Cases: {session_statistics["assigned"]}
-Cases in QC Review: {session_statistics["qc_review"]}
+Cases in Imager Review: {session_statistics["qc_review"]}
 Reviewed Cases: {session_statistics["reviewed"]}
 Completed Cases: {session_statistics["completed"]}
 Recorded Actions: {session_statistics["actions"]}
@@ -414,8 +431,9 @@ Cytology Workflow Triage Optimizer
 st.title("Cytology Workflow Triage Optimizer")
 
 st.markdown(
-    "A database-backed cytology operations dashboard for triage, QC review, "
-    "turnaround monitoring, and predictive workflow intelligence."
+    "A database-backed cytology operations dashboard for AI-assisted triage, "
+    "Imager Review, clinical workflow routing, turnaround monitoring, "
+    "and predictive workflow intelligence."
 )
 
 st.caption(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -452,7 +470,7 @@ try:
         "date",
         "total_cases",
         "urgent_cases",
-        "qc_review_cases",
+        "imager_review_cases",
         "overdue_cases",
     }
 
@@ -514,6 +532,10 @@ st.sidebar.success("Dataset Validation Passed")
 triage_queue = create_triage_queue(cases)
 triage_queue = add_predictive_features(triage_queue)
 
+triage_queue = add_workflow_metadata(
+    triage_queue
+)
+
 triage_queue["qc_flag"] = triage_queue.apply(
     lambda row: assign_qc_flag(
         row["blur_score"],
@@ -529,13 +551,15 @@ triage_queue = apply_workflow_session_state(
 )
 
 urgent_cases = get_urgent_cases(triage_queue)
-pathologist_cases = get_pathologist_review_cases(triage_queue)
+priority_review_cases = get_priority_review_cases(
+    triage_queue
+)
 imager_qc_review_cases = get_imager_qc_review_cases(triage_queue)
 
 summary = create_summary_metrics(
     triage_queue,
     urgent_cases,
-    pathologist_cases,
+    priority_review_cases,
 )
 
 workflow_alerts = create_workflow_alerts(summary)
@@ -548,8 +572,8 @@ with st.sidebar:
     st.header("Workflow Summary")
     st.write(f"Total Cases: {len(triage_queue)}")
     st.write(f"Urgent Cases: {len(urgent_cases)}")
-    st.write(f"Pathologist Review: {len(pathologist_cases)}")
-    st.write(f"Imager QC Review: {len(imager_qc_review_cases)}")
+    st.write(f"Priority Review: {len(priority_review_cases)}")
+    st.write(f"Imager Review: {len(imager_qc_review_cases)}")
     st.write(f"Overdue Cases: {summary['overdue_cases']}")
     st.divider()
     st.write("Current Workflow Status")
@@ -565,7 +589,7 @@ with st.sidebar:
         [
             "All Cases",
             "Immediate Attention",
-            "Pathologist Review",
+            "Priority Review",
             "Routine",
             "Overdue Cases",
             "AI High Risk Cases",
@@ -573,11 +597,11 @@ with st.sidebar:
     )
 
     qc_view = st.selectbox(
-        "Select Imager QC View",
+        "Select Imager Review View",
         [
-            "All Imager QC States",
-            "Imager QC Review",
-            "Imager QC Pass",
+            "All Imager Review States",
+            "Imager Review Required",
+            "Imager Review Passed",
         ],
     )
 
@@ -586,6 +610,10 @@ display_value_columns = [
     "adequacy",
     "scan_status",
     "diagnosis",
+    "specimen_category",
+    "workflow_type",
+    "current_stage",
+    "next_stage",
 ]
 
 (
@@ -601,7 +629,7 @@ display_value_columns = [
         "Overview",
         "Operational Queue",
         "Workflow Intelligence",
-        "QC Analytics",
+        "Imager Analytics",
         "Turnaround Analytics",
         "Trend Analytics",
         "Executive Reports",
@@ -630,13 +658,13 @@ with overview_tab:
         if summary["overdue_cases"] > 0:
             st.write("• Overdue cases require attention")
         if summary["imager_qc_review_cases"] > 5:
-            st.write("• Elevated imager QC review workload")
+            st.write("• Elevated imager review workload")
 
         st.markdown("**Recommended Next Action**")
 
         if lab_status == "Watch":
             st.write(
-                "Prioritize urgent cases, assign additional QC review resources, "
+                "Prioritize urgent cases, assign additional imager review resources, "
                 "and monitor turnaround times."
             )
         else:
@@ -716,7 +744,7 @@ with overview_tab:
         "Diagnosis",
         "Priority",
         "Needs Attention",
-        "QC Flag",
+        "Imager Review Status",
         "AI Priority Score",
         "Turnaround Days",
     ]
@@ -755,7 +783,7 @@ with intelligence_tab:
         forecast_metrics["projected_high_risk_cases"],
     )
     forecast_col2.metric(
-        "Projected QC Review Burden",
+        "Projected Imager Review Burden",
         forecast_metrics["projected_qc_review_burden"],
     )
     forecast_col3.metric(
@@ -764,12 +792,15 @@ with intelligence_tab:
     )
 
 with qc_tab:
-    st.subheader("Imager QC Analytics")
+    st.subheader("Imager Review Analytics")
     qc_col1, qc_col2, qc_col3 = st.columns(3)
-    qc_col1.metric("QC Review Cases", summary["imager_qc_review_cases"])
-    qc_col2.metric("QC Review %", f"{summary['imager_qc_review_pct']:.1f}%")
+    qc_col1.metric("Imager Review Cases", summary["imager_qc_review_cases"])
+    qc_col2.metric(
+        "Imager Review %",
+        f"{summary['imager_review_pct']:.1f}%"
+    )
     qc_col3.metric(
-        "Avg Predicted QC Failure",
+        "Avg Predicted Imager Failure",
         f"{triage_queue['predicted_qc_failure_probability'].mean() * 100:.1f}%",
     )
 
@@ -871,10 +902,10 @@ with trend_tab:
             )
 
             trend_col3.metric(
-                "QC Review Cases",
-                latest_day["qc_review_cases"],
-                latest_day["qc_review_cases"]
-                - previous_day["qc_review_cases"],
+                "Imager Review Cases",
+                latest_day["imager_review_cases"],
+                latest_day["imager_review_cases"]
+                - previous_day["imager_review_cases"],
             )
 
             trend_col4.metric(
@@ -899,7 +930,7 @@ with trend_tab:
                 x="date",
                 y=[
                     "urgent_cases",
-                    "qc_review_cases",
+                    "imager_review_cases",
                     "overdue_cases",
                 ],
             )
@@ -915,7 +946,7 @@ with queue_tab:
     st.markdown("**Demo Session Activity**")
     session_col1, session_col2, session_col3, session_col4, session_col5 = st.columns(5)
     session_col1.metric("Assigned", session_statistics["assigned"])
-    session_col2.metric("In QC Review", session_statistics["qc_review"])
+    session_col2.metric("In Imager Review", session_statistics["qc_review"])
     session_col3.metric("Reviewed", session_statistics["reviewed"])
     session_col4.metric("Completed", session_statistics["completed"])
     session_col5.metric("Actions", session_statistics["actions"])
@@ -951,7 +982,7 @@ with queue_tab:
         [
             "All Cases",
             "Immediate Attention",
-            "QC Review",
+            "Imager Review",
             "Overdue",
             "High AI Risk",
             "Abnormal",
@@ -1015,13 +1046,13 @@ with queue_tab:
         else 0,
     )
     queue_col3.metric(
-        "Pathologist Review",
+        "Priority Review",
         int((filtered_queue["needs_attention"] == "pathologist_review").sum())
         if not filtered_queue.empty
         else 0,
     )
     queue_col4.metric(
-        "QC Review",
+        "Imager Review",
         int((filtered_queue["qc_flag"] == "imager_qc_review").sum())
         if not filtered_queue.empty
         else 0,
@@ -1064,7 +1095,7 @@ with queue_tab:
             "Priority": "Priority",
             "Diagnosis": "Diagnosis",
             "Needs Attention": "Needs Attention",
-            "QC Flag": "QC Flag",
+            "Imager Review Status": "Imager Review Status",
             "Age Status": "Age Status",
             "Assigned To": "Assigned To",
             "Workflow Status": "Workflow Status",
@@ -1075,7 +1106,9 @@ with queue_tab:
             "Adequacy": "Adequacy",
             "Scan Status": "Scan Status",
             "Predicted Abnormal Probability": "Predicted Abnormal Probability",
-            "Predicted QC Failure Probability": "Predicted QC Failure Probability",
+            "Predicted Imager Failure Probability": (
+                "Predicted Imager Failure Probability"
+            ),
             "Predicted Turnaround Risk": "Predicted Turnaround Risk",
         }
 
@@ -1084,7 +1117,7 @@ with queue_tab:
             "Priority",
             "Diagnosis",
             "Needs Attention",
-            "QC Flag",
+            "Imager Review Status",
             "Age Status",
             "Assigned To",
             "Workflow Status",
@@ -1141,7 +1174,7 @@ with queue_tab:
                 f"**Needs Attention:** "
                 f"{format_workflow_label(case_record['needs_attention'])}"
             )
-            st.write(f"**QC Status:** {format_workflow_label(case_record['qc_flag'])}")
+            st.write(f"**Imager Review Status:** {format_workflow_label(case_record['qc_flag'])}")
             turnaround_days = int(case_record["turnaround_days"])
             turnaround_label = "day" if turnaround_days == 1 else "days"
 
@@ -1151,14 +1184,52 @@ with queue_tab:
             )
             st.write(f"**Age Status:** {format_workflow_label(case_record['case_age_flag'])}")
 
+        st.markdown("**Clinical Workflow Routing**")
+
+        workflow_col1, workflow_col2 = st.columns(2)
+
+        with workflow_col1:
+            st.write(
+                f"**Specimen Category:** "
+                f"{format_workflow_label(case_record['specimen_category'])}"
+            )
+            st.write(
+                f"**Workflow Type:** "
+                f"{format_workflow_label(case_record['workflow_type'])}"
+            )
+            st.write(
+                f"**Current Stage:** "
+                f"{format_workflow_label(case_record['current_stage'])}"
+            )
+
+        with workflow_col2:
+            next_stage = case_record.get("next_stage")
+
+            next_stage_label = (
+                format_workflow_label(next_stage)
+                if pd.notna(next_stage)
+                else "Workflow Complete"
+            )
+
+            st.write(
+                f"**Next Stage:** "
+                f"{next_stage_label}"
+            )
+            st.write(
+                f"**Next Required Action:** "
+                f"{case_record['next_required_action']}"
+            )
+
         st.markdown("**Predictive Assessment**")
+        
         risk_col1, risk_col2, risk_col3 = st.columns(3)
+            
         risk_col1.metric(
             "Abnormal Probability",
             f"{case_record['predicted_abnormal_probability'] * 100:.0f}%",
         )
         risk_col2.metric(
-            "QC Failure Risk",
+            "Imager Failure Risk",
             f"{case_record['predicted_qc_failure_probability'] * 100:.0f}%",
         )
         risk_col3.metric(
@@ -1244,25 +1315,26 @@ with queue_tab:
             st.rerun()
 
         if button_col2.button(
-            "Send to QC",
+            "Send to Imager Review",
             width="stretch",
-            disabled=case_is_completed
+            disabled=case_is_completed,
         ):
-            qc_assignee = (
+            imager_assignee = (
                 selected_reviewer
                 if selected_reviewer != "Unassigned"
                 else "QC Specialist"
             )
+
             record_workflow_action(
                 selected_case_id,
-                "Sent to QC review",
+                "Sent to Imager Review",
                 "qc_review",
-                qc_assignee,
+                imager_assignee,
             )
             st.rerun()
 
         if button_col3.button(
-            "Mark Reviewed", 
+            "Mark Reviewed",
             width="stretch",
             disabled=case_is_completed,
         ):
@@ -1270,7 +1342,11 @@ with queue_tab:
                 selected_case_id,
                 "Review completed",
                 "reviewed",
-                selected_reviewer if selected_reviewer != "Unassigned" else None,
+                (
+                    selected_reviewer
+                    if selected_reviewer != "Unassigned"
+                    else None
+                ),
             )
             st.rerun()
 
@@ -1286,7 +1362,11 @@ with queue_tab:
                 selected_case_id,
                 "Workflow completed",
                 "completed",
-                selected_reviewer if selected_reviewer != "Unassigned" else None,
+                (
+                    selected_reviewer
+                    if selected_reviewer != "Unassigned"
+                    else None
+                ),
             )
             st.rerun()
 
@@ -1294,7 +1374,6 @@ with queue_tab:
             st.success(
                 "This case has completed the simulated workflow."
             )
-
         elif not case_is_reviewed:
             st.caption(
                 "Mark the case reviewed before completing the workflow."
@@ -1330,7 +1409,7 @@ with queue_tab:
             "AI Priority Score": "{:.2f}",
             "Predicted Risk Score": "{:.2f}",
             "Predicted Abnormal Probability": "{:.0%}",
-            "Predicted QC Failure Probability": "{:.0%}",
+            "Predicted Imager Failure Probability": "{:.0%}",
             "Predicted Turnaround Risk": "{:.0%}",
             "Turnaround Days": "{} days",
         }
@@ -1354,11 +1433,13 @@ with queue_tab:
         )
 
         csv_export = display_queue.to_csv(index=False)
+
         st.download_button(
             label="Export Filtered Queue",
             data=csv_export,
             file_name=(
-                f"{workflow_view.lower().replace(' ', '_')}_workflow_queue.csv"
+                f"{workflow_view.lower().replace(' ', '_')}"
+                f"_workflow_queue.csv"
             ),
             mime="text/csv",
         )
@@ -1400,7 +1481,7 @@ with reports_tab:
     )
 
     report_col3.metric(
-        "QC Review",
+        "Imager Review",
         int(
             (
                 triage_queue["qc_flag"]
@@ -1463,7 +1544,7 @@ with reports_tab:
     )
 
     activity_col2.metric(
-        "In QC Review",
+        "In Imager Review",
         report_session_statistics["qc_review"]
     )
 
@@ -1506,7 +1587,7 @@ with reports_tab:
     )
 
     ai_report_col3.metric(
-        "QC Failure Risk",
+        "Imager Failure Risk",
         (
             f"{safe_mean(
                 triage_queue,
@@ -1606,10 +1687,10 @@ with reports_tab:
 
     with export_col2:
         st.download_button(
-            label="Download QC Summary",
+            label="Download Imager Review Summary",
             data=qc_report.to_csv(index=False),
             file_name=(
-                f"cytology_qc_summary_"
+                f"cytology_imager_review_summary_"
                 f"{datetime.now().strftime('%Y_%m_%d')}.csv"
             ),
             mime="text/csv",
