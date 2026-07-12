@@ -736,7 +736,7 @@ with overview_tab:
                 "Turnaround Days": "{} days",
             }
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -935,13 +935,13 @@ with queue_tab:
 
             st.dataframe(
                 activity_log_display,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
             st.caption("No workflow actions have been recorded in this session.")
 
-        if st.button("Reset Demo Session", use_container_width=True):
+        if st.button("Reset Demo Session", width="stretch"):
             st.session_state.workflow_case_state = {}
             st.session_state.workflow_activity_log = []
             st.rerun()
@@ -1229,7 +1229,7 @@ with queue_tab:
 
         if button_col1.button(
             "Assign Case",
-            use_container_width=True,
+            width="stretch",
             disabled=(
                 selected_reviewer == "Unassigned"
                 or case_is_completed
@@ -1245,7 +1245,7 @@ with queue_tab:
 
         if button_col2.button(
             "Send to QC",
-            use_container_width=True,
+            width="stretch",
             disabled=case_is_completed
         ):
             qc_assignee = (
@@ -1263,7 +1263,7 @@ with queue_tab:
 
         if button_col3.button(
             "Mark Reviewed", 
-            use_container_width=True,
+            width="stretch",
             disabled=case_is_completed,
         ):
             record_workflow_action(
@@ -1276,7 +1276,7 @@ with queue_tab:
 
         if button_col4.button(
             "Complete Workflow",
-            use_container_width=True,
+            width="stretch",
             disabled=(
                 case_is_completed
                 or not case_is_reviewed
@@ -1349,7 +1349,7 @@ with queue_tab:
 
         st.dataframe(
             styled_display_queue,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -1541,7 +1541,7 @@ with reports_tab:
             high_risk_diagnoses
             .rename_axis("Diagnosis")
             .reset_index(name="High-Risk Cases"),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -1582,7 +1582,7 @@ with reports_tab:
                 f"{datetime.now().strftime('%Y_%m_%d')}.txt"
             ),
             mime="text/plain",
-            use_container_width=True,
+            width="stretch",
         )
 
     qc_report_columns = [
@@ -1613,7 +1613,7 @@ with reports_tab:
                 f"{datetime.now().strftime('%Y_%m_%d')}.csv"
             ),
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
 
     ai_report_columns = [
@@ -1646,7 +1646,7 @@ with reports_tab:
                 f"{datetime.now().strftime('%Y_%m_%d')}.csv"
             ),
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
 
 st.divider()
