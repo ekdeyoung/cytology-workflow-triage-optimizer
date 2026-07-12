@@ -107,7 +107,7 @@ WORKFLOW_STAGES = {
     "quality_control_review": "quality_control_review",
     "pathologist_review": "pathologist_review",
     "final_sign_out": "final_sign_out",
-    "concordance_analysis": "concordance_analysis",
+    "discrepancy_review": "discrepancy_review",
     "educational_review": "educational_review",
 }
 
@@ -175,7 +175,7 @@ CLINICAL_ROUTING_CONFIG = {
         "requires_laboratory_processing": True,
         "requires_primary_cytologist_screening": True,
         "requires_pathologist_review": True,
-        "requires_concordance_analysis": True,
+        "requires_discrepancy_review": True,
     },
 }
 
@@ -210,7 +210,7 @@ WORKFLOW_TEMPLATES = {
         WORKFLOW_STAGES["primary_cytologist_screening"],
         WORKFLOW_STAGES["pathologist_review"],
         WORKFLOW_STAGES["final_sign_out"],
-        WORKFLOW_STAGES["concordance_analysis"],
+        WORKFLOW_STAGES["discrepancy_review"],
     ],
 }
 
@@ -228,9 +228,9 @@ GYNECOLOGIC_POST_SCREENING_ROUTES = {
     ],
 }
 
-QUALITY_FOLLOW_UP_ROUTES = {
-    "concordant": [],
-    "discordant": [
+DISCREPANCY_REVIEW_ROUTES = {
+    "no_discrepancy": [],
+    "discrepancy_found": [
         WORKFLOW_STAGES["educational_review"],
     ],
     "teaching_case": [
