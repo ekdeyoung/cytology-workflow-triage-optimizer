@@ -1445,11 +1445,12 @@ with queue_tab:
                 or case_record.get("assigned_to", "Unassigned") == "Unassigned"
             ),
         ):
-            review_action = (
-                "Imager Review Completed"
-                if current_workflow_status == "qc_review"
-                else "Primary Review Completed"
-            )
+            if current_workflow_status == "qc_review":
+                review_action = "Imager Review Completed"
+            elif current_assignee == "Pathologist":
+                review_action = "Pathologist Review Completed"
+            else:
+                review_action = "Primary Review Completed"
 
             record_workflow_action(
                 selected_case_id,
