@@ -320,10 +320,10 @@ def create_case_recommendation(case_record):
         return "Move this case to the front of the active review queue."
     if case_record["qc_flag"] == "imager_qc_review":
         return "Route this case to Imager Review before primary cytologist screening."
+    if case_record["needs_attention"] == "pathologist_review":
+        return "Prioritize this case for earlier primary cytologist review."
     if case_record["predictive_priority_flag"] == "high_risk":
         return "Prioritize review and monitor predictive risk indicators closely."
-    if case_record["needs_attention"] == "pathologist_review":
-        return "Assign the case for pathologist review and monitor turnaround."
     return "Continue routine workflow processing."
 
 
@@ -342,7 +342,7 @@ def create_daily_operations_report(
         (queue["needs_attention"] == "immediate_attention").sum()
     )
 
-    pathologist_review_cases = int(
+    priority_review_cases = int(
         (queue["needs_attention"] == "pathologist_review").sum()
     )
 
@@ -398,7 +398,7 @@ OPERATIONAL SNAPSHOT
 
 Total Cases: {total_cases}
 Immediate Attention: {urgent_cases}
-Pathologist Review: {pathologist_review_cases}
+Priority Review: {priority_review_cases}
 Imager Review: {imager_review_cases}
 Overdue Cases: {overdue_cases}
 High AI Risk Cases: {high_ai_risk_cases}
@@ -466,6 +466,15 @@ else:
 try:
     trend_data = pd.read_csv(TREND_FILE)
 
+    if (
+        "imager_review_cases" not in trend_data.columns
+        and "qc_review_cases" in trend_data.columns
+    ):
+        trend_data = trend_data.rename(
+            columns={"qc_review_cases": "imager_review_cases"}
+        )
+    
+
     required_trend_columns = {
         "date",
         "total_cases",
@@ -532,16 +541,16 @@ st.sidebar.success("Dataset Validation Passed")
 triage_queue = create_triage_queue(cases)
 triage_queue = add_predictive_features(triage_queue)
 
-triage_queue = add_workflow_metadata(
-    triage_queue
-)
-
 triage_queue["qc_flag"] = triage_queue.apply(
     lambda row: assign_qc_flag(
         row["blur_score"],
         row["artifact_risk_score"],
     ),
     axis=1,
+)
+
+triage_queue = add_workflow_metadata(
+    triage_queue
 )
 
 initialize_workflow_session()
@@ -1170,11 +1179,23 @@ with queue_tab:
 
         with detail_col2:
             st.markdown("**Workflow Status**")
-            st.write(
-                f"**Needs Attention:** "
-                f"{format_workflow_label(case_record['needs_attention'])}"
+            attention_status = {
+                "pathologist_review": "Priority Review",
+            }.get(
+                case_record["needs_attention"],
+                format_workflow_label(case_record["needs_attention"]),
             )
-            st.write(f"**Imager Review Status:** {format_workflow_label(case_record['qc_flag'])}")
+
+            st.write(f"**Needs Attention:** {attention_status}")
+            imager_review_status = {
+                "imager_qc_review": "Imager Review Required",
+                "imager_qc_pass": "Imager Review Passed",
+            }.get(
+                case_record["qc_flag"],
+                format_workflow_label(case_record["qc_flag"]),
+            )
+
+            st.write(f"**Imager Review Status:** {imager_review_status}")
             turnaround_days = int(case_record["turnaround_days"])
             turnaround_label = "day" if turnaround_days == 1 else "days"
 
@@ -1317,7 +1338,10 @@ with queue_tab:
         if button_col2.button(
             "Send to Imager Review",
             width="stretch",
-            disabled=case_is_completed,
+            disabled=(
+                case_is_completed
+                or case_record["qc_flag"] != "imager_qc_review"
+            ),
         ):
             imager_assignee = (
                 selected_reviewer

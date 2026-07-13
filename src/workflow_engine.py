@@ -169,7 +169,7 @@ def describe_next_required_action(next_stage):
             "Complete laboratory processing before screening."
         ),
         "primary_cytologist_screening": (
-            "Assign and complete primary cytologist screening."
+            "Assign and complete primary cytologist review."
         ),
         "quality_control_review": (
             "Complete the required quality control rescreen."
@@ -210,6 +210,7 @@ def add_workflow_metadata(cases):
         "screening_result",
         "selected_for_quality_control",
         "discrepancy_review_status",
+        "qc_flag",
     }
 
     missing_columns = required_columns - set(workflow_cases.columns)
@@ -258,6 +259,13 @@ def add_workflow_metadata(cases):
             ),
             discrepancy_review=discrepancy_review,
         )
+
+        if case.get("qc_flag") != "imager_qc_review":
+            workflow_path = [
+                stage
+                for stage in workflow_path
+                if stage != "imager_review"
+            ]
 
         current_stage = case.get("current_stage")
 

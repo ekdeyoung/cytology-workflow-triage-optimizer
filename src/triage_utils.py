@@ -29,8 +29,16 @@ def format_label(label):
     return formatted_label
 
 def format_workflow_label(label):
+    label_overrides = {
+        "primary_cytologist_screening": "Primary Cytologist Review",
+    }
 
-    return format_label(label)
+    normalized_label = str(label).strip()
+
+    return label_overrides.get(
+        normalized_label,
+        format_label(normalized_label),
+    )
 
 def format_column_label(label):
     
