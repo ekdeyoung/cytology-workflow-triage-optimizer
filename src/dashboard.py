@@ -63,9 +63,17 @@ def record_workflow_action(case_id, action, workflow_status, assigned_to=None):
     if assigned_to is not None:
         current_state["assigned_to"] = assigned_to
 
+    standardized_action = {
+        "assigned": "Assigned",
+        "qc_review": "Entered Imager Review",
+        "reviewed": action,
+        "completed": "Workflow Completed",
+    }.get(workflow_status, action)
+
     current_state["workflow_status"] = workflow_status
-    current_state["last_action"] = action
+    current_state["last_action"] = standardized_action
     current_state["updated_at"] = datetime.now().strftime("%H:%M:%S")
+
     st.session_state.workflow_case_state[case_id] = current_state
 
     st.session_state.workflow_activity_log.insert(
@@ -73,7 +81,7 @@ def record_workflow_action(case_id, action, workflow_status, assigned_to=None):
         {
             "time": datetime.now().strftime("%H:%M:%S"),
             "case_id": case_id,
-            "action": action,
+            "action": standardized_action,
             "assigned_to": current_state.get("assigned_to", "Unassigned"),
         },
     )
@@ -82,7 +90,7 @@ def record_workflow_action(case_id, action, workflow_status, assigned_to=None):
 def calculate_session_statistics(queue):
     """Return counts describing workflow actions completed during the demo session."""
     return {
-        "assigned": int((queue["assigned_to"] != "Unassigned").sum()),
+        "assigned": int((queue["workflow_status"] == "assigned").sum()),
         "qc_review": int((queue["workflow_status"] == "qc_review").sum()),
         "reviewed": int((queue["workflow_status"] == "reviewed").sum()),
         "completed": int((queue["workflow_status"] == "completed").sum()),
@@ -319,7 +327,7 @@ def create_case_recommendation(case_record):
     if case_record["needs_attention"] == "immediate_attention":
         return "Move this case to the front of the active review queue."
     if case_record["qc_flag"] == "imager_qc_review":
-        return "Route this case to Imager Review before primary cytologist screening."
+        return "Route this case to Imager Review before primary cytologist review."
     if case_record["needs_attention"] == "pathologist_review":
         return "Prioritize this case for earlier primary cytologist review."
     if case_record["predictive_priority_flag"] == "high_risk":
@@ -381,7 +389,7 @@ def create_daily_operations_report(
     elif queue_health == "Watch":
         recommended_action = (
             "Review active workload risks, monitor turnaround performance, "
-            "and confirm coverage for Imager Review and pathologist review."
+            "and confirm coverage for Imager Review and Priority Review."
         )
     else:
         recommended_action = (
@@ -1266,14 +1274,60 @@ with queue_tab:
             "These actions update only the current Streamlit session and do not modify source data."
         )
 
-        current_assignee = case_record.get("assigned_to", "Unassigned")
-        reviewer_options = [
+        current_assignee = case_record.get(
+            "assigned_to",
             "Unassigned",
-            "Cytologist",
-            "Senior Cytologist",
-            "Pathologist",
-            "QC Specialist",
-        ]
+        )
+
+        current_workflow_status = case_record.get(
+            "workflow_status",
+            "not_started",
+        )
+
+        effective_next_stage = case_record.get("next_stage")
+
+        if effective_next_stage == "imager_review":
+            if current_assignee == "Pathologist":
+                effective_next_stage = "pathologist_review"
+            elif case_record.get("last_action") == "Primary Review Completed":
+                workflow_path = case_record.get("workflow_path", [])
+
+                primary_review_index = workflow_path.index(
+                    "primary_cytologist_screening"
+                )
+
+                effective_next_stage = (
+                    workflow_path[primary_review_index + 1]
+                    if primary_review_index + 1 < len(workflow_path)
+                    else None
+                )
+
+            elif (
+                case_record.get("last_action") == "Imager Review Completed"
+                or current_assignee in {
+                    "Cytologist",
+                    "Senior Cytologist",
+                }
+            ):
+                effective_next_stage = "primary_cytologist_screening"
+
+        if effective_next_stage == "imager_review":
+            reviewer_options = [
+                "Unassigned",
+                "Imager Review Specialist",
+            ]
+        elif effective_next_stage == "pathologist_review":
+            reviewer_options = [
+                "Unassigned",
+                "Pathologist",
+            ]
+        else:
+            reviewer_options = [
+                "Unassigned",
+                "Cytologist",
+                "Senior Cytologist",
+            ]
+
         default_reviewer_index = (
             reviewer_options.index(current_assignee)
             if current_assignee in reviewer_options
@@ -1289,14 +1343,22 @@ with queue_tab:
                 key=f"reviewer_{selected_case_id}",
             )
         with action_col2:
+            session_status = {
+                "not_started": "Not Started",
+                "assigned": "Assigned",
+                "qc_review": "In Imager Review",
+                "reviewed": "Reviewed",
+                "completed": "Completed",
+            }.get(
+                case_record.get("workflow_status", "not_started"),
+                format_workflow_label(
+                    case_record.get("workflow_status", "not_started")
+                ),
+            )
+
             st.metric(
                 "Session Status",
-                format_workflow_label(
-                    case_record.get(
-                        "workflow_status", 
-                        "not_started"
-                    )
-                ),
+                session_status,
             )
 
             st.caption(
@@ -1304,10 +1366,6 @@ with queue_tab:
                 f"{case_record.get('assigned_to', 'Unassigned')}"
             )
 
-        current_workflow_status = case_record.get(
-            "workflow_status",
-            "not_started"
-        )
 
         case_is_completed = (
             current_workflow_status == "completed"
@@ -1315,6 +1373,7 @@ with queue_tab:
 
         case_is_reviewed = (
             current_workflow_status == "reviewed"
+            and case_record.get("last_action") == "Primary Review Completed"
         )
 
         button_col1, button_col2, button_col3, button_col4 = st.columns(4)
@@ -1325,12 +1384,31 @@ with queue_tab:
             disabled=(
                 selected_reviewer == "Unassigned"
                 or case_is_completed
+                or (
+                    selected_reviewer == current_assignee
+                    and current_workflow_status in {
+                        "assigned",
+                        "qc_review",
+                    }
+                )
             ),
         ):
+            assignment_status = (
+                "qc_review"
+                if effective_next_stage == "imager_review"
+                else "assigned"
+            )
+
+            assignment_action = (
+                "Assigned for Imager Review"
+                if assignment_status == "qc_review"
+                else f"Assigned to {selected_reviewer}"
+            )
+
             record_workflow_action(
                 selected_case_id,
-                f"Assigned to {selected_reviewer}",
-                "assigned",
+                assignment_action,
+                assignment_status,
                 selected_reviewer,
             )
             st.rerun()
@@ -1340,13 +1418,14 @@ with queue_tab:
             width="stretch",
             disabled=(
                 case_is_completed
-                or case_record["qc_flag"] != "imager_qc_review"
+                or current_workflow_status == "qc_review"
+                or effective_next_stage != "imager_review"
             ),
         ):
             imager_assignee = (
                 selected_reviewer
                 if selected_reviewer != "Unassigned"
-                else "QC Specialist"
+                else "Imager Review Specialist"
             )
 
             record_workflow_action(
@@ -1360,11 +1439,21 @@ with queue_tab:
         if button_col3.button(
             "Mark Reviewed",
             width="stretch",
-            disabled=case_is_completed,
+            disabled=(
+                case_is_completed
+                or case_is_reviewed
+                or case_record.get("assigned_to", "Unassigned") == "Unassigned"
+            ),
         ):
+            review_action = (
+                "Imager Review Completed"
+                if current_workflow_status == "qc_review"
+                else "Primary Review Completed"
+            )
+
             record_workflow_action(
                 selected_case_id,
-                "Review completed",
+                review_action,
                 "reviewed",
                 (
                     selected_reviewer
@@ -1380,6 +1469,7 @@ with queue_tab:
             disabled=(
                 case_is_completed
                 or not case_is_reviewed
+                or case_record.get("next_stage") != "final_sign_out"
             ),
         ):
             record_workflow_action(
