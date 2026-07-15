@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from workflow_engine import add_workflow_metadata
+from workflow_engine import (
+    add_workflow_metadata,
+    describe_next_required_action,
+    resolve_effective_next_stage,
+)
 
 from triage_utils import (
     create_triage_queue,
@@ -92,9 +96,47 @@ def calculate_session_statistics(queue):
     return {
         "assigned": int((queue["workflow_status"] == "assigned").sum()),
         "qc_review": int((queue["workflow_status"] == "qc_review").sum()),
-        "reviewed": int((queue["workflow_status"] == "reviewed").sum()),
+        "reviewed": int(
+            (
+                (queue["workflow_status"] == "reviewed")
+                & ~queue["last_action"].isin(
+                    {
+                        "Imager Review Completed",
+                        "Primary Review Completed",
+                        "Pathologist Review Completed",
+                    }
+                )
+            ).sum()
+        ),
+        "awaiting_primary_review": int(
+            (
+                (queue["workflow_status"] == "reviewed")
+                & (
+                    queue["last_action"]
+                    == "Imager Review Completed"
+                )
+            ).sum()
+        ),
+        "awaiting_pathologist_review": int(
+            (
+                (queue["workflow_status"] == "reviewed")
+                & (
+                    queue["last_action"]
+                    == "Primary Review Completed"
+                )
+            ).sum()
+        ),
         "completed": int((queue["workflow_status"] == "completed").sum()),
         "actions": len(st.session_state.workflow_activity_log),
+        "awaiting_sign_out": int(
+            (
+                (queue["workflow_status"] == "reviewed")
+                & (
+                    queue["last_action"]
+                    == "Pathologist Review Completed"
+                )
+            ).sum()
+        ),
     }
 
 
@@ -229,6 +271,27 @@ def add_worklist_badges(display_queue):
     )
 
     if "workflow_status" in display_queue.columns:
+        awaiting_primary_review = (
+            display_queue["workflow_status"].eq("reviewed")
+            & display_queue["last_action"].eq(
+                "Imager Review Completed"
+            )
+        )
+
+        awaiting_pathologist_review = (
+            display_queue["workflow_status"].eq("reviewed")
+            & display_queue["last_action"].eq(
+                "Primary Review Completed"
+            )
+        )
+        
+        awaiting_sign_out = (
+            display_queue["workflow_status"].eq("reviewed")
+            & display_queue["last_action"].eq(
+                "Pathologist Review Completed"
+            )
+        )
+
         workflow_badges = {
             "not_started": "⚪ Not Started",
             "assigned": "🔵 Assigned",
@@ -236,11 +299,31 @@ def add_worklist_badges(display_queue):
             "reviewed": "🟣 Reviewed",
             "completed": "🟢 Completed",
         }
+
         display_queue["workflow_status"] = (
             display_queue["workflow_status"]
             .map(workflow_badges)
-            .fillna(display_queue["workflow_status"].apply(format_workflow_label))
+            .fillna(
+                display_queue["workflow_status"].apply(
+                    format_workflow_label
+                )
+            )
         )
+
+        display_queue.loc[
+            awaiting_primary_review,
+            "workflow_status",
+        ] = "🟣 Awaiting Primary Cytologist Review"
+
+        display_queue.loc[
+            awaiting_pathologist_review,
+            "workflow_status",
+            ] = "🟣 Awaiting Pathologist Review"
+        
+        display_queue.loc[
+            awaiting_sign_out,
+            "workflow_status",
+        ] = "🟣 Awaiting Final Sign Out"
 
     return display_queue
 
@@ -320,13 +403,16 @@ def calculate_queue_health(filtered_queue):
     return "Stable", "The displayed queue is within expected operational limits."
 
 
-def create_case_recommendation(case_record):
+def create_case_recommendation(
+        case_record,
+        effective_next_stage,
+):
     """Generate a concise, explainable next action for the selected case."""
     if case_record["case_age_flag"] == "overdue":
         return "Escalate this case and confirm ownership because turnaround is overdue."
     if case_record["needs_attention"] == "immediate_attention":
         return "Move this case to the front of the active review queue."
-    if case_record["qc_flag"] == "imager_qc_review":
+    if effective_next_stage == "imager_review":
         return "Route this case to Imager Review before primary cytologist review."
     if case_record["needs_attention"] == "pathologist_review":
         return "Prioritize this case for earlier primary cytologist review."
@@ -419,7 +505,9 @@ SESSION WORKFLOW ACTIVITY
 
 Assigned Cases: {session_statistics["assigned"]}
 Cases in Imager Review: {session_statistics["qc_review"]}
+Awaiting Primary Cytologist Review: {session_statistics["awaiting_primary_review"]}
 Reviewed Cases: {session_statistics["reviewed"]}
+Awaiting Final Sign Out: {session_statistics["awaiting_sign_out"]}
 Completed Cases: {session_statistics["completed"]}
 Recorded Actions: {session_statistics["actions"]}
 
@@ -961,12 +1049,28 @@ with queue_tab:
     session_statistics = calculate_session_statistics(triage_queue)
 
     st.markdown("**Demo Session Activity**")
-    session_col1, session_col2, session_col3, session_col4, session_col5 = st.columns(5)
+    (
+        session_col1,
+        session_col2,
+        session_col3,
+        session_col4,
+        session_col5,
+        session_col6,
+        session_col7,
+    ) = st.columns(7)
     session_col1.metric("Assigned", session_statistics["assigned"])
     session_col2.metric("In Imager Review", session_statistics["qc_review"])
-    session_col3.metric("Reviewed", session_statistics["reviewed"])
-    session_col4.metric("Completed", session_statistics["completed"])
-    session_col5.metric("Actions", session_statistics["actions"])
+    session_col3.metric(
+        "Awaiting Primary Review",
+        session_statistics["awaiting_primary_review"],
+    )
+    session_col4.metric("Reviewed", session_statistics["reviewed"])
+    session_col5.metric(
+        "Awaiting Sign Out",
+        session_statistics["awaiting_sign_out"],
+    )
+    session_col6.metric("Completed", session_statistics["completed"])
+    session_col7.metric("Actions", session_statistics["actions"])
 
     with st.expander("Session Activity Log", expanded=False):
         if st.session_state.workflow_activity_log:
@@ -1232,21 +1336,26 @@ with queue_tab:
             )
 
         with workflow_col2:
-            next_stage = case_record.get("next_stage")
+            display_next_stage = resolve_effective_next_stage(
+                workflow_stages=case_record.get("workflow_path", []),
+                next_stage=case_record.get("next_stage"),
+                last_action=case_record.get("last_action"),
+                assigned_to=case_record.get(
+                    "assigned_to",
+                    "Unassigned",
+                ),
+            )
 
             next_stage_label = (
-                format_workflow_label(next_stage)
-                if pd.notna(next_stage)
+                format_workflow_label(display_next_stage)
+                if pd.notna(display_next_stage)
                 else "Workflow Complete"
             )
 
-            st.write(
-                f"**Next Stage:** "
-                f"{next_stage_label}"
-            )
+            st.write(f"**Next Stage:** {next_stage_label}")
             st.write(
                 f"**Next Required Action:** "
-                f"{case_record['next_required_action']}"
+                f"{describe_next_required_action(display_next_stage)}"
             )
 
         st.markdown("**Predictive Assessment**")
@@ -1267,7 +1376,12 @@ with queue_tab:
         )
 
         st.markdown("**Recommended Action**")
-        st.info(create_case_recommendation(case_record))
+        st.info(
+            create_case_recommendation(
+                case_record,
+                display_next_stage,
+            )
+        )
 
         st.markdown("**Workflow Action Center**")
         st.caption(
@@ -1284,39 +1398,23 @@ with queue_tab:
             "not_started",
         )
 
-        effective_next_stage = case_record.get("next_stage")
-
-        if effective_next_stage == "imager_review":
-            if current_assignee == "Pathologist":
-                effective_next_stage = "pathologist_review"
-            elif case_record.get("last_action") == "Primary Review Completed":
-                workflow_path = case_record.get("workflow_path", [])
-
-                primary_review_index = workflow_path.index(
-                    "primary_cytologist_screening"
-                )
-
-                effective_next_stage = (
-                    workflow_path[primary_review_index + 1]
-                    if primary_review_index + 1 < len(workflow_path)
-                    else None
-                )
-
-            elif (
-                case_record.get("last_action") == "Imager Review Completed"
-                or current_assignee in {
-                    "Cytologist",
-                    "Senior Cytologist",
-                }
-            ):
-                effective_next_stage = "primary_cytologist_screening"
-
+        effective_next_stage = resolve_effective_next_stage(
+            workflow_stages=case_record.get("workflow_path", []),
+            next_stage=case_record.get("next_stage"),
+            last_action=case_record.get("last_action"),
+            assigned_to=current_assignee,
+        )
+        
         if effective_next_stage == "imager_review":
             reviewer_options = [
                 "Unassigned",
                 "Imager Review Specialist",
             ]
-        elif effective_next_stage == "pathologist_review":
+
+        elif effective_next_stage in {
+            "pathologist_review",
+            "final_sign_out",
+        }:
             reviewer_options = [
                 "Unassigned",
                 "Pathologist",
@@ -1343,18 +1441,38 @@ with queue_tab:
                 key=f"reviewer_{selected_case_id}",
             )
         with action_col2:
-            session_status = {
-                "not_started": "Not Started",
-                "assigned": "Assigned",
-                "qc_review": "In Imager Review",
-                "reviewed": "Reviewed",
-                "completed": "Completed",
-            }.get(
-                case_record.get("workflow_status", "not_started"),
-                format_workflow_label(
-                    case_record.get("workflow_status", "not_started")
-                ),
-            )
+            if (
+                effective_next_stage == "primary_cytologist_screening"
+                and case_record.get("last_action")
+                == "Imager Review Completed"
+            ):
+                session_status = "Awaiting Primary Cytologist Review"
+
+            elif (
+                effective_next_stage == "pathologist_review"
+                and case_record.get("last_action")
+                == "Primary Review Completed"
+            ):
+                session_status = "Awaiting Pathologist Review"
+
+            elif (
+                effective_next_stage == "final_sign_out"
+                and case_record.get("last_action")
+                == "Pathologist Review Completed"
+            ):
+                session_status = "Awaiting Final Sign Out"
+
+            else:
+                session_status = {
+                    "not_started": "Not Started",
+                    "assigned": "Assigned",
+                    "qc_review": "In Imager Review",
+                    "reviewed": "Reviewed",
+                    "completed": "Completed",
+                }.get(
+                    current_workflow_status,
+                    format_workflow_label(current_workflow_status),
+                )
 
             st.metric(
                 "Session Status",
@@ -1366,14 +1484,16 @@ with queue_tab:
                 f"{case_record.get('assigned_to', 'Unassigned')}"
             )
 
-
         case_is_completed = (
             current_workflow_status == "completed"
         )
 
         case_is_reviewed = (
             current_workflow_status == "reviewed"
-            and case_record.get("last_action") == "Primary Review Completed"
+            and case_record.get("last_action") in {
+                "Primary Review Completed",
+                "Pathologist Review Completed",
+            }
         )
 
         button_col1, button_col2, button_col3, button_col4 = st.columns(4)
@@ -1469,10 +1589,12 @@ with queue_tab:
             width="stretch",
             disabled=(
                 case_is_completed
-                or not case_is_reviewed
-                or case_record.get("next_stage") != "final_sign_out"
+                or case_record.get("last_action")
+                != "Pathologist Review Completed"
+                or effective_next_stage != "final_sign_out"
             ),
         ):
+            
             record_workflow_action(
                 selected_case_id,
                 "Workflow completed",
@@ -1649,28 +1771,43 @@ with reports_tab:
 
     st.markdown("**Workflow Activity Summary**")
 
-    activity_col1, activity_col2, activity_col3, activity_col4 = (
-        st.columns(4)
-    )
+    (
+        activity_col1,
+        activity_col2,
+        activity_col3,
+        activity_col4,
+        activity_col5,
+        activity_col6
+    ) = st.columns(6)
 
     activity_col1.metric(
         "Assigned",
-        report_session_statistics["assigned"]
+        report_session_statistics["assigned"],
     )
 
     activity_col2.metric(
         "In Imager Review",
-        report_session_statistics["qc_review"]
+        report_session_statistics["qc_review"],
     )
 
     activity_col3.metric(
-        "Reviewed",
-        report_session_statistics["reviewed"]
+        "Awaiting Primary Review",
+        report_session_statistics["awaiting_primary_review"],
     )
 
     activity_col4.metric(
+        "Reviewed",
+        report_session_statistics["reviewed"],
+    )
+
+    activity_col5.metric(
+        "Awaiting Sign Out",
+        report_session_statistics["awaiting_sign_out"],
+    )
+
+    activity_col6.metric(
         "Completed",
-        report_session_statistics["completed"]
+        report_session_statistics["completed"],
     )
 
     st.divider()

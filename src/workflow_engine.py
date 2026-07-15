@@ -141,6 +141,63 @@ def get_next_workflow_stage(
 
     return workflow_stages[next_index]
 
+def resolve_effective_next_stage(
+    workflow_stages,
+    next_stage,
+    last_action=None,
+    assigned_to=None,
+):
+    """
+    Resolve session-based workflow progression without changing source data.
+    """
+
+    if next_stage != "imager_review":
+        return next_stage
+
+    if last_action == "Pathologist Review Completed":
+        if "pathologist_review" not in workflow_stages:
+            return None
+
+        pathologist_review_index = workflow_stages.index(
+            "pathologist_review"
+        )
+
+        next_index = pathologist_review_index + 1
+
+        if next_index >= len(workflow_stages):
+            return None
+
+        return workflow_stages[next_index]
+
+    if assigned_to == "Pathologist":
+        return "pathologist_review"
+
+    if last_action == "Primary Review Completed":
+        if "primary_cytologist_screening" not in workflow_stages:
+            return None
+
+        primary_review_index = workflow_stages.index(
+            "primary_cytologist_screening"
+        )
+
+        next_index = primary_review_index + 1
+
+        if next_index >= len(workflow_stages):
+            return None
+
+        return workflow_stages[next_index]
+
+    if (
+        last_action == "Imager Review Completed"
+        or assigned_to in {
+            "Cytologist",
+            "Senior Cytologist",
+        }
+    ):
+        return "primary_cytologist_screening"
+
+    return next_stage
+
 def describe_next_required_action(next_stage):
     """
     Return a user-friendly action for the next workflow stage.
