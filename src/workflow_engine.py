@@ -151,45 +151,46 @@ def resolve_effective_next_stage(
     Resolve session-based workflow progression without changing source data.
     """
 
-    if next_stage != "imager_review":
-        return next_stage
-
-    if last_action == "Pathologist Review Completed":
-        if "pathologist_review" not in workflow_stages:
+    def get_stage_after(completed_stage):
+        if completed_stage not in workflow_stages:
             return None
 
-        pathologist_review_index = workflow_stages.index(
+        completed_stage_index = workflow_stages.index(
+            completed_stage
+        )
+
+        next_index = completed_stage_index + 1
+
+        if next_index >= len(workflow_stages):
+            return None
+
+        return workflow_stages[next_index]
+
+    if last_action == "Pathologist Review Completed":
+        return get_stage_after(
             "pathologist_review"
         )
 
-        next_index = pathologist_review_index + 1
-
-        if next_index >= len(workflow_stages):
-            return None
-
-        return workflow_stages[next_index]
-
-    if assigned_to == "Pathologist":
-        return "pathologist_review"
-
     if last_action == "Primary Review Completed":
-        if "primary_cytologist_screening" not in workflow_stages:
-            return None
-
-        primary_review_index = workflow_stages.index(
+        return get_stage_after(
             "primary_cytologist_screening"
         )
 
-        next_index = primary_review_index + 1
-
-        if next_index >= len(workflow_stages):
+    if last_action == "Imager Review Completed":
+        if "primary_cytologist_screening" not in workflow_stages:
             return None
 
-        return workflow_stages[next_index]
+        return "primary_cytologist_screening"
 
     if (
-        last_action == "Imager Review Completed"
-        or assigned_to in {
+        assigned_to == "Pathologist"
+        and "pathologist_review" in workflow_stages
+    ):
+        return "pathologist_review"
+
+    if (
+        next_stage == "imager_review"
+        and assigned_to in {
             "Cytologist",
             "Senior Cytologist",
         }
@@ -215,6 +216,12 @@ def describe_next_required_action(next_stage):
         ),
         "imager_review": (
             "Review image quality and resolve scan issues."
+        ),
+        "reprocessing": (
+            "Reprocess the unsatisfactory specimen and prepare a replacement slide."
+        ),
+        "rescanning": (
+            "Rescan the replacement slide and confirm image quality before primary review."
         ),
         "rose_procedure": (
             "Perform the ROSE procedure."
@@ -261,6 +268,7 @@ def add_workflow_metadata(cases):
     workflow_cases = cases.copy()
 
     required_columns = {
+        "adequacy",
         "specimen_category",
         "workflow_type",
         "current_stage",
@@ -322,6 +330,30 @@ def add_workflow_metadata(cases):
                 stage
                 for stage in workflow_path
                 if stage != "imager_review"
+            ]
+
+        adequacy = (
+            str(case.get("adequacy", ""))
+            .strip()
+            .lower()
+        )
+
+        if adequacy == "unsatisfactory":
+            if "primary_cytologist_screening" not in workflow_path:
+                raise ValueError(
+                    "Unsatisfactory case workflow is missing "
+                    "primary cytologist review."
+                )
+
+            primary_review_index = workflow_path.index(
+                "primary_cytologist_screening"
+            )
+
+            workflow_path[
+                primary_review_index:primary_review_index
+            ] = [
+                "reprocessing",
+                "rescanning",
             ]
 
         current_stage = case.get("current_stage")

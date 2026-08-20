@@ -47,14 +47,56 @@ def apply_workflow_session_state(queue):
     session_queue = queue.copy()
     case_state = st.session_state.workflow_case_state
 
-    session_queue["assigned_to"] = session_queue["case_id"].map(
-        lambda case_id: case_state.get(case_id, {}).get("assigned_to", "Unassigned")
+    def resolve_case_state(case):
+        case_id = case["case_id"]
+
+        if case_id in case_state:
+            return case_state[case_id]
+
+        adequacy_is_satisfactory = (
+            str(case.get("adequacy", ""))
+            .strip()
+            .lower()
+            != "unsatisfactory"
+        )
+
+        imaging_passed = (
+            adequacy_is_satisfactory
+            and case.get("qc_flag") == "imager_qc_pass"
+            and case.get("next_stage")
+            == "primary_cytologist_screening"
+        )
+
+        if imaging_passed:
+            return {
+                "assigned_to": "Unassigned",
+                "workflow_status": "awaiting_primary_review",
+                "last_action": (
+                    "Automatically Routed After Imaging Pass"
+                ),
+            }
+
+        return {
+            "assigned_to": "Unassigned",
+            "workflow_status": "not_started",
+            "last_action": "No session activity",
+        }
+
+    resolved_states = session_queue.apply(
+        resolve_case_state,
+        axis=1,
     )
-    session_queue["workflow_status"] = session_queue["case_id"].map(
-        lambda case_id: case_state.get(case_id, {}).get("workflow_status", "not_started")
+
+    session_queue["assigned_to"] = resolved_states.apply(
+        lambda state: state["assigned_to"]
     )
-    session_queue["last_action"] = session_queue["case_id"].map(
-        lambda case_id: case_state.get(case_id, {}).get("last_action", "No session activity")
+
+    session_queue["workflow_status"] = resolved_states.apply(
+        lambda state: state["workflow_status"]
+    )
+
+    session_queue["last_action"] = resolved_states.apply(
+        lambda state: state["last_action"]
     )
 
     return session_queue
@@ -110,10 +152,17 @@ def calculate_session_statistics(queue):
         ),
         "awaiting_primary_review": int(
             (
-                (queue["workflow_status"] == "reviewed")
-                & (
-                    queue["last_action"]
-                    == "Imager Review Completed"
+                (
+                    queue["workflow_status"]
+                    == "awaiting_primary_review"
+                )
+                |
+                (
+                    (queue["workflow_status"] == "reviewed")
+                    & (
+                        queue["last_action"]
+                        == "Imager Review Completed"
+                    )
                 )
             ).sum()
         ),
@@ -197,6 +246,7 @@ def sort_operational_queue(queue, sort_option):
         sortable_queue.get("workflow_status", "not_started")
         .map({
             "not_started": 0,
+            "awaiting_primary_review": 1,
             "assigned": 1,
             "qc_review": 1,
             "reviewed": 2,
@@ -272,9 +322,15 @@ def add_worklist_badges(display_queue):
 
     if "workflow_status" in display_queue.columns:
         awaiting_primary_review = (
-            display_queue["workflow_status"].eq("reviewed")
-            & display_queue["last_action"].eq(
-                "Imager Review Completed"
+            display_queue["workflow_status"].eq(
+                "awaiting_primary_review"
+            )
+            |
+            (
+                display_queue["workflow_status"].eq("reviewed")
+                & display_queue["last_action"].eq(
+                    "Imager Review Completed"
+                )
             )
         )
 
@@ -294,6 +350,9 @@ def add_worklist_badges(display_queue):
 
         workflow_badges = {
             "not_started": "⚪ Not Started",
+            "awaiting_primary_review": (
+                "🟣 Awaiting Primary Cytologist Review"
+            ),
             "assigned": "🔵 Assigned",
             "qc_review": "🟠 In Imager Review",
             "reviewed": "🟣 Reviewed",
@@ -1411,14 +1470,28 @@ with queue_tab:
                 "Imager Review Specialist",
             ]
 
-        elif effective_next_stage in {
-            "pathologist_review",
-            "final_sign_out",
-        }:
+        elif effective_next_stage == "pathologist_review":
             reviewer_options = [
                 "Unassigned",
                 "Pathologist",
             ]
+
+        elif effective_next_stage == "final_sign_out":
+            if (
+                "pathologist_review"
+                in case_record.get("workflow_path", [])
+            ):
+                reviewer_options = [
+                    "Unassigned",
+                    "Pathologist",
+                ]
+            else:
+                reviewer_options = [
+                    "Unassigned",
+                    "Cytologist",
+                    "Senior Cytologist",
+                ]
+
         else:
             reviewer_options = [
                 "Unassigned",
@@ -1442,9 +1515,14 @@ with queue_tab:
             )
         with action_col2:
             if (
-                effective_next_stage == "primary_cytologist_screening"
-                and case_record.get("last_action")
-                == "Imager Review Completed"
+                current_workflow_status
+                == "awaiting_primary_review"
+                or (
+                    effective_next_stage
+                    == "primary_cytologist_screening"
+                    and case_record.get("last_action")
+                    == "Imager Review Completed"
+                )
             ):
                 session_status = "Awaiting Primary Cytologist Review"
 
@@ -1589,8 +1667,10 @@ with queue_tab:
             width="stretch",
             disabled=(
                 case_is_completed
-                or case_record.get("last_action")
-                != "Pathologist Review Completed"
+                or case_record.get("last_action") not in {
+                    "Primary Review Completed",
+                    "Pathologist Review Completed",
+                }
                 or effective_next_stage != "final_sign_out"
             ),
         ):
