@@ -116,8 +116,16 @@ def record_workflow_action(case_id, action, workflow_status, assigned_to=None):
         "completed": "Workflow Completed",
     }.get(workflow_status, action)
 
+    preserve_review_progress = (
+        workflow_status == "assigned"
+        and assigned_to == "Quality Control Reviewer"
+        and current_state.get("last_action")
+        == "Primary Review Completed"
+    )
+
     current_state["workflow_status"] = workflow_status
-    current_state["last_action"] = standardized_action
+    if not preserve_review_progress:
+        current_state["last_action"] = standardized_action
     current_state["updated_at"] = datetime.now().strftime("%H:%M:%S")
 
     st.session_state.workflow_case_state[case_id] = current_state
@@ -145,6 +153,7 @@ def calculate_session_statistics(queue):
                     {
                         "Imager Review Completed",
                         "Primary Review Completed",
+                        "Random QC Review Completed",
                         "Pathologist Review Completed",
                     }
                 )
@@ -181,8 +190,12 @@ def calculate_session_statistics(queue):
             (
                 (queue["workflow_status"] == "reviewed")
                 & (
-                    queue["last_action"]
-                    == "Pathologist Review Completed"
+                    queue["last_action"].isin(
+                        {
+                            "Random QC Review Completed",
+                            "Pathologist Review Completed",
+                        }
+                    )
                 )
             ).sum()
         ),
@@ -343,8 +356,11 @@ def add_worklist_badges(display_queue):
         
         awaiting_sign_out = (
             display_queue["workflow_status"].eq("reviewed")
-            & display_queue["last_action"].eq(
-                "Pathologist Review Completed"
+            & display_queue["last_action"].isin(
+                {
+                    "Random QC Review Completed",
+                    "Pathologist Review Completed",
+                }
             )
         )
 
@@ -1476,6 +1492,12 @@ with queue_tab:
                 "Pathologist",
             ]
 
+        elif effective_next_stage == "quality_control_review":
+            reviewer_options = [
+                "Unassigned",
+                "Quality Control Reviewer",
+            ]
+
         elif effective_next_stage == "final_sign_out":
             if (
                 "pathologist_review"
@@ -1535,8 +1557,11 @@ with queue_tab:
 
             elif (
                 effective_next_stage == "final_sign_out"
-                and case_record.get("last_action")
-                == "Pathologist Review Completed"
+                and case_record.get("last_action") in {
+                    "Primary Review Completed",
+                    "Random QC Review Completed",
+                    "Pathologist Review Completed",
+                }
             ):
                 session_status = "Awaiting Final Sign Out"
 
@@ -1570,6 +1595,7 @@ with queue_tab:
             current_workflow_status == "reviewed"
             and case_record.get("last_action") in {
                 "Primary Review Completed",
+                "Random QC Review Completed",
                 "Pathologist Review Completed",
             }
         )
@@ -1645,6 +1671,8 @@ with queue_tab:
         ):
             if current_workflow_status == "qc_review":
                 review_action = "Imager Review Completed"
+            elif effective_next_stage == "quality_control_review":
+                review_action = "Random QC Review Completed"
             elif current_assignee == "Pathologist":
                 review_action = "Pathologist Review Completed"
             else:
@@ -1669,6 +1697,7 @@ with queue_tab:
                 case_is_completed
                 or case_record.get("last_action") not in {
                     "Primary Review Completed",
+                    "Random QC Review Completed",
                     "Pathologist Review Completed",
                 }
                 or effective_next_stage != "final_sign_out"

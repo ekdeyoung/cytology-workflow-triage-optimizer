@@ -166,9 +166,17 @@ def resolve_effective_next_stage(
 
         return workflow_stages[next_index]
 
+    if last_action == "Workflow Completed":
+        return None
+
     if last_action == "Pathologist Review Completed":
         return get_stage_after(
             "pathologist_review"
+        )
+
+    if last_action == "Random QC Review Completed":
+        return get_stage_after(
+            "quality_control_review"
         )
 
     if last_action == "Primary Review Completed":
@@ -292,6 +300,9 @@ def add_workflow_metadata(cases):
 
     for _, case in workflow_cases.iterrows():
         screening_result = case.get("screening_result")
+
+        if pd.isna(screening_result) or str(screening_result).strip() == "":
+                    screening_result = case.get("diagnosis")
 
         if pd.isna(screening_result) or str(screening_result).strip() == "":
             screening_result = None
